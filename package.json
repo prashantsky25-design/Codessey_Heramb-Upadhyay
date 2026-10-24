@@ -1,0 +1,24 @@
+{
+  "name": "crossproof",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CrossProof: Decentralized Cross-Chain Transaction Verification Protocol",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test:contracts": "cd contracts && ..\\bin\\forge.exe test -vv",
+    "test": "npm run test:contracts",
+    "lint": "npm run lint --workspaces --if-present",
+    "api:dev": "npm run dev --workspace=apps/api",
+    "web:dev": "npm run dev --workspace=apps/web",
+    "serve": "npx tsx scripts/serve.js",
+    "demo": "node scripts/demo.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}

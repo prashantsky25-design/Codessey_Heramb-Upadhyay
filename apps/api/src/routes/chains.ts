@@ -1,0 +1,11 @@
+import { FastifyPluginAsync } from 'fastify';
+import { config } from '../config';
+
+export const chainRoutes: FastifyPluginAsync = async (server) => {
+  server.get('/chains', async () => {
+    return {
+      status: 'success',
+      chains: Object.values(config.chains)
+    };
+  });
+};

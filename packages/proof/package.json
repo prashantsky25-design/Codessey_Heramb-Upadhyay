@@ -1,0 +1,27 @@
+{
+  "name": "@crossproof/proof",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@crossproof/shared": "*",
+    "@ethereumjs/rlp": "^5.0.2",
+    "@ethereumjs/trie": "^6.2.1",
+    "@ethereumjs/util": "^9.1.0",
+    "viem": "^2.19.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
+}
