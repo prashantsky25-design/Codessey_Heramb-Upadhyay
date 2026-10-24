@@ -6,7 +6,7 @@ export const SUPPORTED_CHAINS: Record<number, ChainConfig> = {
     name: 'Ethereum Local (Source)',
     shortName: 'ETH-Local',
     rpcUrl: 'http://127.0.0.1:8545',
-    sourceBridgeAddress: '0x5FbDB2315678afecb367f032d93F642f64180aa3',
+    sourceBridgeAddress: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512',
     isSource: true,
     isDestination: false,
     nativeCurrency: {
@@ -20,9 +20,9 @@ export const SUPPORTED_CHAINS: Record<number, ChainConfig> = {
     name: 'Optimism Local (Destination)',
     shortName: 'OP-Local',
     rpcUrl: 'http://127.0.0.1:8546',
-    destinationVerifierAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0',
-    headerOracleAddress: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-    receiverAddress: '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9',
+    destinationVerifierAddress: '0xa513e6e4b8f2a923d98304ec87f64353c4d5c853',
+    headerOracleAddress: '0x5fc8d32690cc91d4c39d9d3abcbd16989f875707',
+    receiverAddress: '0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6',
     isSource: false,
     isDestination: true,
     nativeCurrency: {

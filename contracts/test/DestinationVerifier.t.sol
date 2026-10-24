@@ -258,4 +258,48 @@ contract DestinationVerifierTest is Test {
         vm.expectRevert(DestinationVerifier.Unauthorized.selector);
         verifier.setSourceBridge(1, address(0x1));
     }
+
+    function test_RevertIf_FailedSourceTransaction() public {
+        bytes memory failedReceiptRlp = helper.buildReceiptRlp(
+            sourceBridge,
+            messageId,
+            sourceChainId,
+            destChainId,
+            address(appReceiver),
+            nonce,
+            payload,
+            payloadHash,
+            0 // status = 0 (failed)
+        );
+
+        (bytes32 failedRoot, bytes[] memory failedProof) = helper.buildSingleNodeMPTProof(
+            failedReceiptRlp
+        );
+
+        vm.prank(relayer);
+        headerOracle.commitSourceHeader(sourceChainId, 202, blockHash, failedRoot);
+
+        IDestinationVerifier.CrossChainProof memory proof = IDestinationVerifier.CrossChainProof({
+            sourceChainId: sourceChainId,
+            sourceContract: sourceBridge,
+            blockNumber: 202,
+            blockHash: blockHash,
+            receiptsRoot: failedRoot,
+            txIndex: 0,
+            receiptRlp: failedReceiptRlp,
+            mptProof: failedProof,
+            payload: payload
+        });
+
+        vm.expectRevert(ReceiptVerifier.ReceiptStatusFailed.selector);
+        verifier.verifyAndExecute(proof, "");
+    }
+
+    function test_RevertIf_IncorrectTxIndex() public {
+        IDestinationVerifier.CrossChainProof memory proof = _buildValidProof();
+        proof.txIndex = 1; // Wrong tx index (proof built for index 0)
+
+        vm.expectRevert();
+        verifier.verifyAndExecute(proof, "");
+    }
 }

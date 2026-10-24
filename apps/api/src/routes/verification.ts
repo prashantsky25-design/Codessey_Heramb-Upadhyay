@@ -48,6 +48,8 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
 
       // Auto-commit source header to DevHeaderOracle if local mode
       const destConfig = chainService.getChainConfig(targetDestChainId);
+      let headerValidated = true;
+      let headerErrorMsg = 'Committed to Header Verifier';
       if (destConfig.headerOracleAddress) {
         try {
           const destWallet = chainService.getWalletClient(targetDestChainId);
@@ -81,7 +83,9 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
             });
             await destPublic.waitForTransactionReceipt({ hash: commitTx });
           }
-        } catch (oracleErr) {
+        } catch (oracleErr: any) {
+          headerValidated = false;
+          headerErrorMsg = oracleErr?.message || 'Header oracle commit failed';
           console.warn('Notice: Header oracle commit skipped or failed:', oracleErr);
         }
       }
@@ -119,8 +123,8 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
           {
             id: 'header_finality_validated',
             label: 'Source Header Authenticity Validated',
-            status: 'completed',
-            details: 'Committed to Header Verifier'
+            status: headerValidated ? 'completed' : 'failed',
+            details: headerErrorMsg
           },
           {
             id: 'destination_verifier_called',
@@ -157,7 +161,23 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
       });
     }
 
-    const { proof } = parse.data;
+    const { sourceChainId, destinationChainId, proof } = parse.data;
+
+    if (proof.sourceChainId !== sourceChainId) {
+      return reply.status(400).send({
+        status: 'error',
+        code: 'SOURCE_CHAIN_ID_MISMATCH',
+        message: `Proof sourceChainId (${proof.sourceChainId}) does not match request sourceChainId (${sourceChainId})`
+      });
+    }
+
+    if (!proof.blockHash || !proof.receiptsRoot || !proof.receiptRlp || !Array.isArray(proof.mptProof)) {
+      return reply.status(400).send({
+        status: 'error',
+        code: 'INVALID_PROOF_STRUCTURE',
+        message: 'Proof is missing required fields (blockHash, receiptsRoot, receiptRlp, or mptProof)'
+      });
+    }
 
     try {
       // 1. Check MPT receipt inclusion
@@ -230,6 +250,22 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
       parse.data;
     let proof = { ...parse.data.proof };
 
+    if (proof.sourceChainId !== sourceChainId) {
+      return reply.status(400).send({
+        status: 'error',
+        code: 'SOURCE_CHAIN_ID_MISMATCH',
+        message: `Proof sourceChainId (${proof.sourceChainId}) does not match request sourceChainId (${sourceChainId})`
+      });
+    }
+
+    if (!proof.blockHash || !proof.receiptsRoot || !proof.receiptRlp || !Array.isArray(proof.mptProof)) {
+      return reply.status(400).send({
+        status: 'error',
+        code: 'INVALID_PROOF_STRUCTURE',
+        message: 'Proof is missing required fields (blockHash, receiptsRoot, receiptRlp, or mptProof)'
+      });
+    }
+
     // Deliberate attack simulations
     if (simulateTamper === 'proof_node') {
       proof.mptProof = ['0xdeadbeef1234'];
@@ -276,6 +312,36 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
         hash: txHash,
         timeout: 25_000
       });
+
+      if (receipt.status !== 'success') {
+        const record: VerificationRecord = {
+          verificationId,
+          messageId: '0x0000000000000000000000000000000000000000000000000000000000000000',
+          sourceChainId,
+          sourceContract: proof.sourceContract as Hex,
+          destinationChainId,
+          destinationReceiver: destConfig.receiverAddress || ('0x0' as Hex),
+          sourceTxHash: sourceTxHash as Hex,
+          destinationTxHash: receipt.transactionHash,
+          blockNumber: proof.blockNumber,
+          txIndex: proof.txIndex,
+          payload: proof.payload as Hex,
+          payloadHash: '0x' as Hex,
+          verifiedAt: Math.floor(Date.now() / 1000),
+          gasUsed: receipt.gasUsed.toString(),
+          status: 'REJECTED',
+          rejectionReason: 'Destination transaction reverted on-chain',
+          trustMode: 'MODE_A_LOCAL_ORACLE'
+        };
+        verificationStore.save(record);
+
+        return reply.status(422).send({
+          status: 'error',
+          code: 'EXECUTION_REVERTED',
+          message: 'Destination transaction reverted on-chain',
+          record
+        });
+      }
 
       // Query messageId from verifier record or logs
       const record: VerificationRecord = {
