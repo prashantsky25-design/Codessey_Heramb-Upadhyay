@@ -108,14 +108,6 @@ export async function buildReceiptInclusionProof(
     await trie.put(key, value);
   }
 
-<<<<<<< HEAD
-  const receiptsRoot = bytesToHex(trie.root());
-  if (receiptsRoot.toLowerCase() !== block.receiptsRoot.toLowerCase()) {
-    throw new Error(
-      `Receipt trie root mismatch for block ${block.number}: reconstructed ${receiptsRoot}, canonical ${block.receiptsRoot}`
-    );
-  }
-=======
   const reconstructedRoot = bytesToHex(trie.root());
   const canonicalRoot = block.receiptsRoot;
 
@@ -124,9 +116,7 @@ export async function buildReceiptInclusionProof(
       `Receipts root mismatch: reconstructed root (${reconstructedRoot}) does not match canonical source block receiptsRoot (${canonicalRoot})`
     );
   }
-
   const receiptsRoot = reconstructedRoot;
->>>>>>> origin/main
 
   // 5. Generate cryptographic inclusion proof for the target receipt
   const targetKey = encodeTxIndexToRlp(receipt.transactionIndex);

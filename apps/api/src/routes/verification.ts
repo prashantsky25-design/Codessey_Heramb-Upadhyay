@@ -221,7 +221,6 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
       const targetDestChainId =
         destinationChainId || proofResult.extractedEvent.destinationChainId;
 
-<<<<<<< HEAD
       chainService.updateChainAddresses(sourceChainId, {
         sourceBridgeAddress: proofResult.extractedEvent.sourceContract
       });
@@ -239,51 +238,6 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
         headerVerifier: resolved.headerVerifier,
         destPublic: resolved.destPublic
       });
-=======
-      // Auto-commit source header to DevHeaderOracle if local mode
-      const destConfig = chainService.getChainConfig(targetDestChainId);
-      let headerValidated = true;
-      let headerErrorMsg = 'Committed to Header Verifier';
-      if (destConfig.headerOracleAddress) {
-        try {
-          const destWallet = chainService.getWalletClient(targetDestChainId);
-          const destPublic = chainService.getPublicClient(targetDestChainId);
-
-          // Check if already committed
-          const isVerified = (await destPublic.readContract({
-            address: destConfig.headerOracleAddress,
-            abi: DevHeaderOracleAbi,
-            functionName: 'verifySourceHeader',
-            args: [
-              BigInt(sourceChainId),
-              BigInt(proofResult.proof.blockNumber),
-              proofResult.proof.blockHash,
-              proofResult.proof.receiptsRoot,
-              '0x'
-            ]
-          }).catch(() => false)) as boolean;
-
-          if (!isVerified) {
-            const commitTx = await (destWallet as any).writeContract({
-              address: destConfig.headerOracleAddress,
-              abi: DevHeaderOracleAbi,
-              functionName: 'commitSourceHeader',
-              args: [
-                BigInt(sourceChainId),
-                BigInt(proofResult.proof.blockNumber),
-                proofResult.proof.blockHash,
-                proofResult.proof.receiptsRoot
-              ]
-            });
-            await destPublic.waitForTransactionReceipt({ hash: commitTx });
-          }
-        } catch (oracleErr: any) {
-          headerValidated = false;
-          headerErrorMsg = oracleErr?.message || 'Header oracle commit failed';
-          console.warn('Notice: Header oracle commit skipped or failed:', oracleErr);
-        }
-      }
->>>>>>> origin/main
 
       const verificationId = `v-${Date.now()}-${proofResult.extractedEvent.nonce}`;
 
@@ -318,13 +272,8 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
           {
             id: 'header_finality_validated',
             label: 'Source Header Authenticity Validated',
-<<<<<<< HEAD
             status: 'completed',
             details: headerResult.details
-=======
-            status: headerValidated ? 'completed' : 'failed',
-            details: headerErrorMsg
->>>>>>> origin/main
           },
           {
             id: 'destination_verifier_called',
