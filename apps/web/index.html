@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/shield.svg" />
@@ -8,8 +8,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+      (() => {
+        const key = 'crossproof-theme';
+        const stored = localStorage.getItem(key);
+        const theme = stored === 'light' || stored === 'vecna'
+          ? stored
+          : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vecna' : 'light');
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme === 'vecna' ? 'dark' : 'light';
+      })();
+    </script>
   </head>
-  <body class="bg-[#0a0b0d] text-zinc-100 antialiased selection:bg-cyan-500/20 selection:text-cyan-200">
+  <body class="antialiased">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

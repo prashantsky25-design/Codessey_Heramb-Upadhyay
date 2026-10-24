@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "test:contracts": "cd contracts && ..\\bin\\forge.exe test -vv",
+    "test:contracts": "cd contracts && forge test -vv",
     "test": "npm run test:contracts",
     "lint": "npm run lint --workspaces --if-present",
     "api:dev": "npm run dev --workspace=apps/api",

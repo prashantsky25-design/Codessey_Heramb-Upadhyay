@@ -72,20 +72,20 @@ export const HeroVisual: React.FC = () => {
   const activeStage = FLOW_STAGES.find((s) => s.id === selectedStage) || FLOW_STAGES[1];
 
   return (
-    <div className="bg-[#0f1116] border border-[#1f242d] rounded-2xl p-5 shadow-2xl relative overflow-hidden flex flex-col justify-between">
+    <div className="surface-card-raised relative flex flex-col justify-between overflow-hidden p-5">
       {/* Background technical accent */}
-      <div className="absolute -right-16 -top-16 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -left-16 -bottom-16 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="diagram-glow diagram-glow-top" />
+      <div className="diagram-glow diagram-glow-bottom" />
 
       {/* Header bar of visual */}
-      <div className="flex items-center justify-between pb-3 border-b border-[#1c2027] mb-4">
+      <div className="mb-4 flex items-center justify-between border-b border-[var(--line)] pb-3">
         <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span className="text-xs font-mono font-semibold text-zinc-200">
+          <div className="h-2 w-2 rounded-full bg-[var(--accent)]" />
+          <span className="text-xs font-semibold text-primary">
             Cryptographic Pipeline Flow
           </span>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#161a22] text-zinc-400 border border-zinc-800">
+        <span className="tag tag-neutral">
           EVM Native &bull; Fail-Closed
         </span>
       </div>
@@ -98,21 +98,23 @@ export const HeroVisual: React.FC = () => {
 
           return (
             <div key={stage.id} className="relative">
-              <div
+              <button
+                type="button"
                 onClick={() => setSelectedStage(stage.id)}
-                className={`cursor-pointer rounded-xl p-3 border transition-all duration-200 flex items-center justify-between ${
+                aria-pressed={isSelected}
+                className={`flex w-full items-center justify-between rounded-xl border p-3 text-left transition-all duration-200 ${
                   isSelected
-                    ? 'bg-[#141820] border-cyan-500/50 shadow-md shadow-cyan-950/40 translate-x-1'
-                    : 'bg-[#111318] border-[#1f232b] hover:border-zinc-700 hover:bg-[#13161c]'
+                    ? 'stage-card-selected'
+                    : 'surface-inset hover:border-[var(--line-strong)]'
                 }`}
               >
                 <div className="flex items-center space-x-3 min-w-0">
                   {/* Stage Number / Status Pill */}
                   <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono text-xs font-bold shrink-0 transition-colors ${
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-xs font-bold transition-colors ${
                       isSelected
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                        : 'bg-zinc-800/80 text-zinc-400 border border-zinc-700/60'
+                        ? 'stage-number-selected'
+                        : 'stage-number'
                     }`}
                   >
                     0{idx + 1}
@@ -120,14 +122,14 @@ export const HeroVisual: React.FC = () => {
 
                   <div className="min-w-0">
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs font-semibold text-zinc-100 font-mono truncate">
+                      <span className="block truncate text-xs font-semibold text-primary">
                         {stage.name}
                       </span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-800/80 text-zinc-400 hidden sm:inline">
+                      <span className="tag tag-neutral hidden sm:inline">
                         {stage.subtitle}
                       </span>
                     </div>
-                    <p className="text-[11px] text-zinc-400 font-mono truncate mt-0.5">
+                    <p className="mt-0.5 truncate text-[11px] text-secondary">
                       {stage.role}
                     </p>
                   </div>
@@ -135,24 +137,24 @@ export const HeroVisual: React.FC = () => {
 
                 <div className="flex items-center space-x-2 shrink-0">
                   <span
-                    className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                    className={`tag ${
                       stage.status === 'verified'
-                        ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/40'
+                        ? 'tag-success'
                         : stage.status === 'active'
-                        ? 'bg-cyan-950/40 text-cyan-300 border-cyan-800/40'
-                        : 'bg-zinc-900 text-zinc-400 border-zinc-800'
+                        ? 'tag-accent'
+                        : 'tag-neutral'
                     }`}
                   >
                     {stage.badge}
                   </span>
                 </div>
-              </div>
+              </button>
 
               {/* Animated directional connector line between stages */}
               {!isLast && (
                 <div className="h-2.5 flex items-center justify-center my-0.5 relative">
-                  <div className="w-[2px] h-full bg-[#1f242d] relative overflow-hidden">
-                    <div className="absolute inset-0 bg-cyan-400/80 animate-subtle-pulse" />
+                  <div className="pipeline-connector">
+                    <div className="pipeline-connector-active animate-subtle-pulse" />
                   </div>
                 </div>
               )}
@@ -162,15 +164,15 @@ export const HeroVisual: React.FC = () => {
       </div>
 
       {/* Interactive Detail Inspector for clicked stage */}
-      <div className="mt-4 p-3 rounded-xl bg-[#0a0c10] border border-[#1b1f26] font-mono text-xs space-y-1.5">
-        <div className="flex items-center justify-between text-[11px] text-zinc-400 border-b border-zinc-800/60 pb-1.5">
-          <span className="flex items-center space-x-1.5 text-cyan-400 font-semibold">
+      <div className="surface-inset mt-4 space-y-1.5 p-3 text-xs">
+        <div className="flex items-center justify-between border-b border-[var(--line)] pb-1.5 text-[11px] text-secondary">
+          <span className="flex items-center space-x-1.5 font-semibold accent-text">
             <Binary className="w-3.5 h-3.5" />
             <span>Cryptographic Spec: {activeStage.name}</span>
           </span>
-          <span className="text-[10px] text-zinc-500">{activeStage.codeRef}</span>
+          <span className="technical-data text-[10px] text-muted">{activeStage.codeRef}</span>
         </div>
-        <p className="text-[11px] text-zinc-300 leading-relaxed pt-1">
+        <p className="pt-1 text-[11px] leading-relaxed text-secondary">
           {activeStage.details}
         </p>
       </div>

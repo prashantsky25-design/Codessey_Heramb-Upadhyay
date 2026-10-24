@@ -249,6 +249,9 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
     const { sourceChainId, destinationChainId, sourceTxHash, simulateTamper } =
       parse.data;
     let proof = { ...parse.data.proof };
+    const zeroMessageId = '0x0000000000000000000000000000000000000000000000000000000000000000' as Hex;
+    const proofMessageId = (proof.messageId || zeroMessageId) as Hex;
+    const proofPayloadHash = (proof.payloadHash || '0x') as Hex;
 
     if (proof.sourceChainId !== sourceChainId) {
       return reply.status(400).send({
@@ -316,7 +319,7 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
       if (receipt.status !== 'success') {
         const record: VerificationRecord = {
           verificationId,
-          messageId: '0x0000000000000000000000000000000000000000000000000000000000000000',
+          messageId: proofMessageId,
           sourceChainId,
           sourceContract: proof.sourceContract as Hex,
           destinationChainId,
@@ -326,12 +329,13 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
           blockNumber: proof.blockNumber,
           txIndex: proof.txIndex,
           payload: proof.payload as Hex,
-          payloadHash: '0x' as Hex,
+          payloadHash: proofPayloadHash,
           verifiedAt: Math.floor(Date.now() / 1000),
           gasUsed: receipt.gasUsed.toString(),
           status: 'REJECTED',
           rejectionReason: 'Destination transaction reverted on-chain',
-          trustMode: 'MODE_A_LOCAL_ORACLE'
+          trustMode: 'MODE_A_LOCAL_ORACLE',
+          proof: proof as VerificationRecord['proof']
         };
         verificationStore.save(record);
 
@@ -344,9 +348,9 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
       }
 
       // Query messageId from verifier record or logs
-      const record: VerificationRecord = {
-        verificationId,
-        messageId: '0x' as Hex, // Will fill from logs or event
+        const record: VerificationRecord = {
+          verificationId,
+          messageId: proofMessageId,
         sourceChainId,
         sourceContract: proof.sourceContract as Hex,
         destinationChainId,
@@ -356,11 +360,12 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
         blockNumber: proof.blockNumber,
         txIndex: proof.txIndex,
         payload: proof.payload as Hex,
-        payloadHash: '0x' as Hex,
+          payloadHash: proofPayloadHash,
         verifiedAt: Math.floor(Date.now() / 1000),
         gasUsed: receipt.gasUsed.toString(),
         status: receipt.status === 'success' ? 'VERIFIED' : 'REJECTED',
-        trustMode: 'MODE_A_LOCAL_ORACLE'
+          trustMode: 'MODE_A_LOCAL_ORACLE',
+          proof: proof as VerificationRecord['proof']
       };
 
       // Extract MessageVerified event log if present
@@ -386,9 +391,9 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
       };
     } catch (err: any) {
       // Revert caught
-      const record: VerificationRecord = {
-        verificationId,
-        messageId: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        const record: VerificationRecord = {
+          verificationId,
+          messageId: proofMessageId,
         sourceChainId,
         sourceContract: proof.sourceContract as Hex,
         destinationChainId,
@@ -397,11 +402,12 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
         blockNumber: proof.blockNumber,
         txIndex: proof.txIndex,
         payload: proof.payload as Hex,
-        payloadHash: '0x' as Hex,
+          payloadHash: proofPayloadHash,
         verifiedAt: Math.floor(Date.now() / 1000),
         status: 'REJECTED',
         rejectionReason: err?.shortMessage || err?.message || 'On-chain execution reverted',
-        trustMode: 'MODE_A_LOCAL_ORACLE'
+          trustMode: 'MODE_A_LOCAL_ORACLE',
+          proof: proof as VerificationRecord['proof']
       };
 
       verificationStore.save(record);

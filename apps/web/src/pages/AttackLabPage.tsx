@@ -166,19 +166,19 @@ export const AttackLabPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="vecna-fracture space-y-6">
       {/* Page Header */}
       <div>
         <div className="flex items-center space-x-2">
-          <Terminal className="w-6 h-6 text-rose-500" />
-          <h1 className="text-xl sm:text-2xl font-bold font-mono text-zinc-100">
+          <Terminal className="h-6 w-6 danger-text" />
+          <h1 className="text-xl font-bold text-strong sm:text-2xl">
             Adversarial Attack & Security Lab
           </h1>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-800/50">
+          <span className="tag tag-danger">
             5 Live Exploit Vectors
           </span>
         </div>
-        <p className="text-xs text-zinc-400 mt-1">
+        <p className="mt-1 max-w-4xl text-sm leading-6 text-secondary">
           Execute real adversarial transactions against the DestinationVerifier smart contract on local Anvil (Chain 31338).
           Verify that forged proofs, mutated receipts, substituted payloads, unfinalized headers, and replay attempts
           are strictly rejected on-chain without backend dependencies.
@@ -186,7 +186,7 @@ export const AttackLabPage: React.FC = () => {
       </div>
 
       {/* 5 Attack Selection Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 font-mono">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
         {ATTACK_SCENARIOS.map((scenario) => {
           const isSelected = activeAttack === scenario.id;
           const Icon = scenario.icon;
@@ -198,10 +198,20 @@ export const AttackLabPage: React.FC = () => {
                 setActiveAttack(scenario.id);
                 setAttackResult(null);
               }}
-              className={`cursor-pointer rounded-xl p-4 border transition-all duration-150 flex flex-col justify-between ${
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setActiveAttack(scenario.id);
+                  setAttackResult(null);
+                }
+              }}
+              tabIndex={0}
+              role="button"
+              aria-pressed={isSelected}
+              className={`flex cursor-pointer flex-col justify-between rounded-xl border p-4 text-left transition-all duration-150 ${
                 isSelected
-                  ? 'bg-[#181318] border-rose-500/60 shadow-lg shadow-rose-950/40 translate-y-[-2px]'
-                  : 'bg-[#111317] border-[#21252d] hover:border-zinc-700 hover:bg-[#14161c]'
+                  ? 'attack-card-selected'
+                  : 'surface-card hover:border-[var(--line-strong)]'
               }`}
             >
               <div>
@@ -209,28 +219,28 @@ export const AttackLabPage: React.FC = () => {
                   <div
                     className={`p-1.5 rounded-lg ${
                       isSelected
-                        ? 'bg-rose-500/20 text-rose-400'
-                        : 'bg-zinc-800/60 text-zinc-400'
+                        ? 'tag-danger'
+                        : 'tag-neutral'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
                   </div>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-400">
+                   <span className="tag tag-neutral">
                     {scenario.category}
                   </span>
                 </div>
 
-                <h3 className="text-xs font-bold text-zinc-100 mb-1">
+                 <h3 className="mb-1 text-sm font-bold text-primary">
                   {scenario.title}
                 </h3>
-                <p className="text-[10px] text-zinc-400 leading-relaxed">
+                 <p className="text-[11px] leading-relaxed text-secondary">
                   {scenario.shortDesc}
                 </p>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[10px]">
-                <span className="text-zinc-500">Selector:</span>
-                <code className="text-rose-400 font-semibold">{scenario.selector}</code>
+               <div className="mt-3 flex items-center justify-between border-t border-[var(--line)] pt-2 text-[10px]">
+                 <span className="text-muted">Selector:</span>
+                 <code className="technical-data danger-text font-semibold">{scenario.selector}</code>
               </div>
             </div>
           );
@@ -238,18 +248,18 @@ export const AttackLabPage: React.FC = () => {
       </div>
 
       {/* Attack Console */}
-      <div className="bg-[#111317] border border-[#21252d] rounded-xl p-6 shadow-xl space-y-4 font-mono text-xs">
+       <div className="surface-card space-y-4 p-6">
         {/* Header bar of Console */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800 pb-3 gap-2">
+         <div className="flex flex-col justify-between gap-2 border-b border-[var(--line)] pb-3 sm:flex-row sm:items-center">
           <div className="flex items-center space-x-2">
-            <ShieldAlert className="w-4 h-4 text-rose-400" />
-            <span className="font-semibold text-zinc-200">
+             <ShieldAlert className="h-4 w-4 danger-text" />
+             <span className="font-semibold text-primary">
               Active Test Target: {currentScenario.title}
             </span>
           </div>
-          <div className="flex items-center space-x-2 text-[11px] text-zinc-400">
+           <div className="flex items-center space-x-2 text-[11px] text-secondary">
             <span>Target:</span>
-            <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 font-semibold">
+             <span className="tag tag-neutral">
               DestinationVerifier (Chain 31338)
             </span>
           </div>
@@ -257,18 +267,18 @@ export const AttackLabPage: React.FC = () => {
 
         {/* Strategy & Expected Result Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
-          <div className="p-3 bg-[#0c0e12] border border-[#1b1f26] rounded-lg space-y-1">
-            <span className="text-zinc-400 font-semibold block">Adversary Strategy:</span>
-            <p className="text-zinc-300 leading-relaxed">
+           <div className="surface-inset space-y-1 p-3">
+             <span className="block font-semibold text-secondary">Adversary Strategy:</span>
+             <p className="leading-relaxed text-primary">
               {currentScenario.adversaryStrategy}
             </p>
           </div>
 
-          <div className="p-3 bg-[#0c0e12] border border-[#1b1f26] rounded-lg space-y-1">
-            <span className="text-cyan-400 font-semibold block">Expected Contract Revert:</span>
-            <p className="text-zinc-300 font-mono">
-              <code className="text-rose-300 font-bold block">{currentScenario.revertError}</code>
-              <span className="text-[10px] text-zinc-500 mt-1 block">
+           <div className="surface-inset space-y-1 p-3">
+             <span className="accent-text block font-semibold">Expected Contract Revert:</span>
+             <p className="text-primary">
+               <code className="technical-data danger-text block font-bold">{currentScenario.revertError}</code>
+               <span className="mt-1 block text-[10px] text-muted">
                 Selector: {currentScenario.selector} &bull; Security: {currentScenario.securityGuarantee}
               </span>
             </p>
@@ -280,7 +290,7 @@ export const AttackLabPage: React.FC = () => {
           <button
             onClick={() => handleExecuteAttack(activeAttack)}
             disabled={executing}
-            className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-bold rounded-lg transition-all flex items-center space-x-2 shadow-lg shadow-rose-950/50 text-xs"
+             className="button-primary border-[var(--danger)] bg-[var(--danger)] text-xs hover:border-[var(--accent-strong)] hover:bg-[var(--accent-strong)]"
           >
             {executing ? (
               <>
@@ -295,46 +305,46 @@ export const AttackLabPage: React.FC = () => {
             )}
           </button>
 
-          <span className="text-[11px] text-zinc-500">
+           <span className="technical-data text-[11px] text-muted">
             Broadcasts call to Anvil RPC http://127.0.0.1:8546
           </span>
         </div>
 
         {/* Live Attack Outcome Window */}
         {attackResult && (
-          <div className="mt-6 border-t border-zinc-800 pt-5 space-y-4">
+           <div className="mt-6 space-y-4 border-t border-[var(--line)] pt-5">
             <div className="flex items-center space-x-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              <h3 className="text-sm font-bold text-emerald-300">
+               <CheckCircle2 className="h-5 w-5 success-text" />
+               <h3 className="text-sm font-bold success-text">
                 Attack Successfully Thwarted & Blocked by Destination Contract!
               </h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
-              <div className="p-3 bg-[#0c0e12] rounded-lg border border-[#1b1f26]">
-                <span className="text-zinc-500 block mb-1">On-Chain Rejection Signal:</span>
-                <span className="text-rose-400 font-bold block break-all">
+               <div className="surface-inset p-3">
+                 <span className="mb-1 block text-muted">On-Chain Rejection Signal:</span>
+                 <span className="technical-data danger-text block break-all font-bold">
                   {attackResult.revertReason || currentScenario.revertError}
                 </span>
-                <span className="text-[10px] text-emerald-400 mt-1 block">
+                 <span className="mt-1 block text-[10px] success-text">
                   &bull; Contract state unmodified (State rollback)
                 </span>
               </div>
 
-              <div className="p-3 bg-[#0c0e12] rounded-lg border border-[#1b1f26]">
-                <span className="text-zinc-500 block mb-1">Security Invariant Enforced:</span>
-                <span className="text-zinc-200 font-semibold block">
+               <div className="surface-inset p-3">
+                 <span className="mb-1 block text-muted">Security Invariant Enforced:</span>
+                 <span className="block font-semibold text-primary">
                   {currentScenario.securityGuarantee}
                 </span>
-                <span className="text-[10px] text-cyan-400 mt-1 block">
+                 <span className="mt-1 block text-[10px] accent-text">
                   &bull; Pure mathematical EVM check (Zero backend trust)
                 </span>
               </div>
             </div>
 
-            <div className="p-4 bg-emerald-950/20 border border-emerald-800/40 rounded-lg text-emerald-300/90 text-xs leading-relaxed space-y-1">
-              <div className="flex items-center space-x-1.5 text-emerald-400 font-bold">
-                <Lock className="w-4 h-4" />
+             <div className="space-y-1 rounded border border-[var(--success)] bg-[var(--success-soft)] p-4 text-xs leading-relaxed success-text">
+               <div className="flex items-center space-x-1.5 font-bold">
+                 <Lock className="h-4 w-4" />
                 <span>Auditor Security & Cryptographic Analysis:</span>
               </div>
               <p>{attackResult.securityExplanation || currentScenario.auditorExplanation}</p>

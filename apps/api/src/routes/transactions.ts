@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { chainService } from '../services/chainService';
-import { decodeEventLog, Hash } from 'viem';
+import { decodeEventLog, Hash, keccak256 } from 'viem';
 import { SourceBridgeAbi } from '@crossproof/shared';
 
 const GetTxParamsSchema = z.object({
@@ -41,9 +41,28 @@ export const transactionRoutes: FastifyPluginAsync = async (server) => {
           });
         }
 
+        if (receipt.status !== 'success') {
+          return reply.status(422).send({
+            status: 'error',
+            code: 'TRANSACTION_FAILED',
+            message: `Transaction ${txHash} did not succeed on chain ${chainId}`
+          });
+        }
+
+        const chainConfig = chainService.getChainConfig(chainId);
+        const sourceBridgeAddress = chainConfig.sourceBridgeAddress?.toLowerCase();
+        if (!sourceBridgeAddress || !tx.to || tx.to.toLowerCase() !== sourceBridgeAddress) {
+          return reply.status(400).send({
+            status: 'error',
+            code: 'NOT_SOURCE_BRIDGE_TRANSACTION',
+            message: `Transaction ${txHash} was not sent to the configured SourceBridge on chain ${chainId}`
+          });
+        }
+
         // Look for MessageDispatched event
         let dispatchedMessage = null;
         for (const log of receipt.logs) {
+          if (log.address.toLowerCase() !== sourceBridgeAddress) continue;
           try {
             const decoded = decodeEventLog({
               abi: SourceBridgeAbi,
@@ -52,6 +71,12 @@ export const transactionRoutes: FastifyPluginAsync = async (server) => {
             });
             if (decoded.eventName === 'MessageDispatched') {
               const args: any = decoded.args;
+              if (Number(args.sourceChainId) !== chainId || args.sourceContract.toLowerCase() !== log.address.toLowerCase()) {
+                continue;
+              }
+              if (keccak256(args.payload).toLowerCase() !== args.payloadHash.toLowerCase()) {
+                continue;
+              }
               dispatchedMessage = {
                 messageId: args.messageId,
                 sourceChainId: Number(args.sourceChainId),

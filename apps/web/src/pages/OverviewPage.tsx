@@ -46,63 +46,60 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
   return (
     <div className="space-y-6">
       {/* 1. ASYMMETRIC SPLIT HERO SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+       <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
         {/* Left Side: Brand positioning, Core message, CTAs */}
-        <div className="lg:col-span-7 bg-[#111317] border border-[#21252d] rounded-2xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+         <div className="hero-panel surface-card soft-grid relative flex flex-col justify-between overflow-hidden p-6 sm:p-8 lg:col-span-7">
 
           <div className="space-y-4">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-800/50 text-cyan-300 text-xs font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span>Decentralized Cross-Chain Transaction Verification</span>
+             <div className="tag tag-accent inline-flex items-center gap-2">
+               <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
+               <span>Decentralized cross-chain transaction verification</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-zinc-100 tracking-tight leading-tight">
-              Trust the proof. <br />
-              <span className="text-cyan-400 font-mono">Not the messenger.</span>
-            </h1>
+             <h1 className="text-3xl font-extrabold leading-tight tracking-tight text-strong sm:text-4xl">
+               Don't trust the relay. <br />
+               <span className="accent-text">Verify the proof.</span>
+             </h1>
 
-            <p className="text-sm text-zinc-400 leading-relaxed max-w-xl">
-              CrossProof is a modular interoperability protocol that enables destination smart contracts
-              to cryptographically verify Ethereum-compatible transaction inclusion and light-client
-              consensus proofs. Never rely on an untrusted relayer or backend assertion when mathematics can prove it.
-            </p>
+             <p className="max-w-xl text-sm leading-relaxed text-secondary">
+               CrossProof lets destination contracts verify that a transaction actually happened on another chain — no trusted relayer, no multisig, no backend shortcut. Just a Patricia Trie proof checked on-chain.
+             </p>
 
             {/* Feature telemetry pills */}
-            <div className="flex flex-wrap gap-2 pt-1 font-mono text-[11px]">
-              <span className="px-2.5 py-1 rounded bg-[#171a21] border border-zinc-800 text-zinc-300">
-                &bull; EVM Patricia Merkle Trie
-              </span>
-              <span className="px-2.5 py-1 rounded bg-[#171a21] border border-zinc-800 text-zinc-300">
-                &bull; Fail-Closed Replay Lock
-              </span>
-              <span className="px-2.5 py-1 rounded bg-[#171a21] border border-zinc-800 text-zinc-300">
-                &bull; Zero Relayer Trust
-              </span>
+             <div className="flex flex-wrap gap-2 pt-1 text-[11px]">
+               <span className="tag tag-neutral">
+                 Patricia Trie on-chain
+               </span>
+               <span className="tag tag-neutral">
+                 Replay-proof by default
+               </span>
+               <span className="tag tag-neutral">
+                 No trusted relayer
+               </span>
             </div>
           </div>
 
           {/* Action Button Row */}
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => onNavigate('verify')}
-              className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-bold text-xs font-mono rounded-lg transition-all flex items-center space-x-2 shadow-lg shadow-cyan-950/50"
+           <div className="mt-8 flex flex-wrap items-center gap-3">
+             <button
+               onClick={() => onNavigate('verify')}
+               className="button-primary"
             >
               <span>Verify a Transaction</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
-            <button
-              onClick={() => onNavigate('attack-lab')}
-              className="px-4 py-2.5 bg-[#171b22] hover:bg-[#1f242e] text-zinc-200 border border-zinc-700/80 font-mono text-xs rounded-lg transition-all flex items-center space-x-2"
+             <button
+               onClick={() => onNavigate('attack-lab')}
+               className="button-secondary"
             >
-              <Terminal className="w-3.5 h-3.5 text-rose-400" />
+               <Terminal className="h-3.5 w-3.5 danger-text" />
               <span>Explore Proof Lab</span>
             </button>
 
-            <button
-              onClick={() => onNavigate('architecture')}
-              className="px-4 py-2.5 bg-transparent hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 font-mono text-xs rounded-lg transition flex items-center space-x-1"
+             <button
+               onClick={() => onNavigate('architecture')}
+               className="button-ghost"
             >
               <span>Protocol Specs &rarr;</span>
             </button>
@@ -110,7 +107,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
 
         {/* Right Side: Animated Cross-Chain Flow Visualization */}
-        <div className="lg:col-span-5 flex flex-col justify-stretch">
+         <div className="flex flex-col justify-stretch lg:col-span-5">
           <HeroVisual />
         </div>
       </div>
@@ -122,21 +119,21 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       <MetricsCards records={records} />
 
       {/* 4. ACTIVITY & NETWORK PROTOCOL STATE */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Recent Verification Activity (8 cols) */}
-        <div className="lg:col-span-8 bg-[#111317] border border-[#21252d] rounded-xl p-5 shadow-sm space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-zinc-800/80 gap-2">
+         <div className="surface-card space-y-4 p-5 lg:col-span-8">
+           <div className="flex flex-col justify-between gap-2 border-b border-[var(--line)] pb-3 sm:flex-row sm:items-center">
             <div className="flex items-center space-x-2">
-              <Activity className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-zinc-100 font-mono">
+               <Activity className="h-4 w-4 accent-text" />
+               <h2 className="text-sm font-semibold text-primary">
                 Recent On-Chain Verifications
               </h2>
             </div>
 
-            <div className="flex items-center space-x-3 text-xs font-mono">
+             <div className="flex items-center space-x-3 text-xs">
               <button
                 onClick={() => onNavigate('history')}
-                className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center space-x-1"
+                 className="accent-text flex items-center space-x-1 hover:underline"
               >
                 <span>Full Ledger ({records.length})</span>
                 <ExternalLink className="w-3 h-3" />
@@ -145,9 +142,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left font-mono text-xs">
+             <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-zinc-800/60 text-zinc-400 text-[11px]">
+                 <tr className="border-b border-[var(--line)] text-[11px] text-muted">
                   <th className="pb-2">Verification ID</th>
                   <th className="pb-2">Route</th>
                   <th className="pb-2">Source Block</th>
@@ -157,18 +154,18 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
               </thead>
               <tbody className="divide-y divide-zinc-800/40">
                 {filteredRecords.slice(0, 5).map((rec) => (
-                  <tr key={rec.verificationId} className="hover:bg-zinc-900/40 transition">
-                    <td className="py-2.5 text-zinc-300">
-                      <div className="font-semibold text-zinc-200">{rec.verificationId}</div>
-                      <span className="text-[10px] text-zinc-400">{rec.sourceTxHash.slice(0, 14)}...</span>
-                    </td>
-                    <td className="py-2.5 text-zinc-300">
-                      <span className="text-cyan-400">ETH ({rec.sourceChainId})</span>
-                      <span className="text-zinc-500 mx-1">&rarr;</span>
-                      <span className="text-emerald-400">OP ({rec.destinationChainId})</span>
-                    </td>
-                    <td className="py-2.5 text-zinc-300">
-                      #{rec.blockNumber} <span className="text-zinc-500">(tx #{rec.txIndex})</span>
+                   <tr key={rec.verificationId} className="transition hover:bg-[var(--surface-muted)]">
+                     <td className="py-2.5 text-primary">
+                       <div className="font-semibold">{rec.verificationId}</div>
+                       <span className="technical-data text-[10px] text-muted">{rec.sourceTxHash.slice(0, 14)}...</span>
+                     </td>
+                     <td className="py-2.5 text-primary">
+                       <span className="accent-text">ETH ({rec.sourceChainId})</span>
+                       <span className="mx-1 text-muted">&rarr;</span>
+                       <span className="success-text">OP ({rec.destinationChainId})</span>
+                     </td>
+                     <td className="technical-data py-2.5 text-primary">
+                       #{rec.blockNumber} <span className="text-muted">(tx #{rec.txIndex})</span>
                     </td>
                     <td className="py-2.5">
                       <StatusBadge status={rec.status} size="sm" />
@@ -176,7 +173,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                     <td className="py-2.5 text-right">
                       <button
                         onClick={() => onSelectTxForVerification(rec.sourceChainId, rec.sourceTxHash)}
-                        className="text-cyan-400 hover:text-cyan-300 hover:underline text-[11px]"
+                         className="accent-text text-[11px] hover:underline"
                       >
                         Inspect Proof &rarr;
                       </button>
@@ -189,57 +186,57 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
 
         {/* Network Protocol State (4 cols) */}
-        <div className="lg:col-span-4 bg-[#111317] border border-[#21252d] rounded-xl p-5 shadow-sm space-y-4 font-mono text-xs">
-          <div className="flex items-center space-x-2 border-b border-zinc-800/80 pb-3">
-            <Cpu className="w-4 h-4 text-cyan-400" />
-            <h2 className="text-sm font-semibold text-zinc-100">
+         <div className="surface-card space-y-4 p-5 lg:col-span-4">
+           <div className="flex items-center space-x-2 border-b border-[var(--line)] pb-3">
+             <Cpu className="h-4 w-4 accent-text" />
+             <h2 className="text-sm font-semibold text-primary">
               Dual-Chain Protocol State
             </h2>
           </div>
 
           <div className="space-y-3">
             {/* Origin Chain */}
-            <div className="p-3 rounded-lg bg-[#0e1014] border border-[#1d2129]">
+             <div className="surface-inset p-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-zinc-200 font-semibold">Origin Chain: Ethereum Local</span>
-                <span className="px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 text-[10px] border border-cyan-800/50">
+                 <span className="font-semibold text-primary">Origin Chain: Ethereum Local</span>
+                 <span className="tag tag-accent">
                   ID: 31337
                 </span>
               </div>
-              <div className="text-[11px] text-zinc-400 font-mono">RPC: http://127.0.0.1:8545</div>
-              <div className="text-[10px] text-zinc-400 mt-1 truncate">
+               <div className="technical-data mt-2 text-[11px] text-secondary">RPC: http://127.0.0.1:8545</div>
+               <div className="technical-data mt-1 truncate text-[10px] text-muted">
                 Bridge: 0xe7f1725e7734ce288f8367e1bb143e90bb3f0512
               </div>
             </div>
 
             {/* Destination Chain */}
-            <div className="p-3 rounded-lg bg-[#0e1014] border border-[#1d2129]">
+             <div className="surface-inset p-3">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-zinc-200 font-semibold">Destination: Optimism Local</span>
-                <span className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 text-[10px] border border-emerald-800/50">
+                 <span className="font-semibold text-primary">Destination: Optimism Local</span>
+                 <span className="tag tag-success">
                   ID: 31338
                 </span>
               </div>
-              <div className="text-[11px] text-zinc-400 font-mono">RPC: http://127.0.0.1:8546</div>
-              <div className="text-[10px] text-zinc-400 mt-1 truncate">
+               <div className="technical-data mt-2 text-[11px] text-secondary">RPC: http://127.0.0.1:8546</div>
+               <div className="technical-data mt-1 truncate text-[10px] text-muted">
                 Verifier: 0xa513e6e4b8f2a923d98304ec87f64353c4d5c853
               </div>
             </div>
 
             {/* Cryptographic Guarantees */}
-            <div className="p-3 rounded-lg bg-[#0e1014] border border-[#1d2129] space-y-1.5">
-              <div className="text-zinc-300 font-semibold">Cryptographic Standards</div>
-              <div className="flex items-center justify-between text-[11px] text-zinc-400">
+             <div className="surface-inset space-y-1.5 p-3">
+               <div className="font-semibold text-primary">Cryptographic Standards</div>
+               <div className="flex items-center justify-between text-[11px] text-secondary">
                 <span>Receipt Trie:</span>
-                <span className="text-cyan-400">Merkle Patricia Trie</span>
+                 <span className="accent-text">Merkle Patricia Trie</span>
               </div>
-              <div className="flex items-center justify-between text-[11px] text-zinc-400">
+               <div className="flex items-center justify-between text-[11px] text-secondary">
                 <span>Digest Function:</span>
-                <span className="text-cyan-400">keccak256</span>
+                 <span className="accent-text technical-data">keccak256</span>
               </div>
-              <div className="flex items-center justify-between text-[11px] text-zinc-400">
+               <div className="flex items-center justify-between text-[11px] text-secondary">
                 <span>Replay Guard:</span>
-                <span className="text-emerald-400">Persistent mapping (CEI)</span>
+                 <span className="success-text">Persistent mapping (CEI)</span>
               </div>
             </div>
           </div>

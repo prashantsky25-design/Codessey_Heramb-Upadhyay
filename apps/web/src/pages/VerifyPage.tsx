@@ -16,7 +16,9 @@ import {
 import {
   ChainConfig,
   CrossChainProofData,
-  TimelineStage
+  TimelineStage,
+  INVALID_TRANSACTION_HASH_MESSAGE,
+  normalizeTransactionHash
 } from '@crossproof/shared';
 import {
   prepareVerification,
@@ -50,9 +52,9 @@ const SAMPLE_HASHES = [
     desc: 'Live mined cross-chain message on Chain 31337'
   },
   {
-    label: 'Demo Seed Message #1',
-    hash: '0x4a821e285a9bc811342657e841fa5cb2e33f381ad79383625f381b0163359d9f',
-    desc: 'Standard CrossChainMessage dispatched from Ethereum 31337'
+    label: 'Use a live hash',
+    hash: '',
+    desc: 'Paste a mined MessageDispatched transaction from the source chain'
   }
 ];
 
@@ -101,11 +103,11 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
   const handleVerify = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    const cleanHash = txHash.trim();
-    if (!cleanHash.startsWith('0x') || cleanHash.length !== 66) {
-      setGeneralError(
-        'Invalid transaction hash format. Must be a 32-byte hex string (0x followed by 64 hexadecimal characters).'
-      );
+    let cleanHash: `0x${string}`;
+    try {
+      cleanHash = normalizeTransactionHash(txHash);
+    } catch {
+      setGeneralError(INVALID_TRANSACTION_HASH_MESSAGE);
       return;
     }
 
@@ -245,33 +247,33 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
       {/* Header */}
       <div>
         <div className="flex items-center space-x-2">
-          <ShieldCheck className="w-6 h-6 text-cyan-400" />
-          <h1 className="text-xl sm:text-2xl font-bold font-mono text-zinc-100">
+          <ShieldCheck className="h-6 w-6 accent-text" />
+          <h1 className="text-xl font-bold text-strong sm:text-2xl">
             Cross-Chain Transaction Verification
           </h1>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/50">
+          <span className="tag tag-accent">
             Destination Verifier Workspace
           </span>
         </div>
-        <p className="text-xs text-zinc-400 mt-1">
+        <p className="mt-1 max-w-3xl text-sm leading-6 text-secondary">
           Submit an origin chain transaction hash. CrossProof will extract the Patricia Merkle Trie receipt proof,
           verify root convergence, check header commitments, and execute on-chain verification without trusting intermediaries.
         </p>
       </div>
 
       {/* Input Form Card */}
-      <div className="bg-[#111317] border border-[#21252d] rounded-xl p-5 shadow-sm space-y-4 font-mono text-xs">
+      <div className="surface-card space-y-4 p-5">
         <form onSubmit={handleVerify} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Origin Chain */}
             <div>
-              <label className="block text-zinc-400 mb-1.5 font-semibold text-[11px]">
+              <label className="mb-1.5 block text-[11px] font-semibold text-secondary">
                 Origin Chain (Where message was dispatched):
               </label>
               <select
                 value={sourceChainId}
                 onChange={(e) => setSourceChainId(Number(e.target.value))}
-                className="w-full bg-[#0c0e12] border border-zinc-700/80 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-cyan-500"
+                className="theme-select px-3 py-2 text-xs"
               >
                 {chains
                   .filter((c) => c.isSource)
@@ -285,13 +287,13 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
 
             {/* Destination Chain */}
             <div>
-              <label className="block text-zinc-400 mb-1.5 font-semibold text-[11px]">
+              <label className="mb-1.5 block text-[11px] font-semibold text-secondary">
                 Destination Verification Network:
               </label>
               <select
                 value={destinationChainId}
                 onChange={(e) => setDestinationChainId(Number(e.target.value))}
-                className="w-full bg-[#0c0e12] border border-zinc-700/80 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-cyan-500"
+                className="theme-select px-3 py-2 text-xs"
               >
                 {chains
                   .filter((c) => c.isDestination)
@@ -307,17 +309,18 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
           {/* Tx Hash Input */}
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-1.5 gap-1">
-              <label className="text-zinc-400 font-semibold text-[11px]">
+              <label className="text-[11px] font-semibold text-secondary">
                 Origin Transaction Hash (32-byte Keccak-256):
               </label>
               <div className="flex items-center space-x-2 text-[11px]">
-                <span className="text-zinc-500">Quick Seed:</span>
+                 <span className="text-muted">Quick Seed:</span>
                 {SAMPLE_HASHES.map((sample, i) => (
                   <button
                     key={i}
                     type="button"
-                    onClick={() => handleUseSample(sample.hash)}
-                    className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center space-x-1"
+                     onClick={() => sample.hash && handleUseSample(sample.hash)}
+                     disabled={!sample.hash}
+                     className="accent-text flex items-center space-x-1 hover:underline"
                   >
                     <span>{sample.label}</span>
                   </button>
@@ -331,12 +334,12 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
                 value={txHash}
                 onChange={(e) => setTxHash(e.target.value)}
                 placeholder="0x4a821e285a9bc811342657e841fa5cb2e33f381ad79383625f381b0163359d9f"
-                className="w-full bg-[#0c0e12] border border-zinc-700/80 rounded-lg pl-3 pr-28 py-2.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-cyan-500 font-mono"
+                className="theme-input technical-data w-full px-3 py-2.5 pr-28 text-xs"
               />
               <button
                 type="submit"
                 disabled={loading || !txHash}
-                className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 disabled:hover:bg-cyan-500 text-zinc-950 font-bold text-xs rounded-md transition flex items-center space-x-1.5 shadow-sm"
+                 className="button-primary absolute bottom-1.5 right-1.5 top-1.5 px-4 text-xs"
               >
                 {loading ? (
                   <>
@@ -357,14 +360,14 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
 
       {/* Success Banner */}
       {finalStatus === 'VERIFIED' && (
-        <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col justify-between gap-3 rounded border border-[var(--success)] bg-[var(--success-soft)] p-4 sm:flex-row sm:items-center">
           <div className="flex items-center space-x-3">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+             <CheckCircle2 className="h-5 w-5 shrink-0 success-text" />
             <div>
-              <p className="text-sm font-semibold font-mono text-emerald-300">
+               <p className="text-sm font-semibold success-text">
                 Cryptographic Verification Succeeded On-Chain!
               </p>
-              <p className="text-xs text-emerald-400/80 font-mono mt-0.5">
+               <p className="mt-0.5 text-xs text-secondary">
                 The DestinationVerifier contract validated the Patricia Trie proof nodes, confirmed header finality, checked replay mappings, and finalized destination state.
               </p>
             </div>

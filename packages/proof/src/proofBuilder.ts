@@ -5,6 +5,7 @@ import {
   decodeEventLog,
   Hash,
   Hex,
+  keccak256,
   hexToBytes,
   PublicClient,
   TransactionReceipt
@@ -158,6 +159,26 @@ export async function buildReceiptInclusionProof(
           payload: args.payload,
           payloadHash: args.payloadHash
         };
+
+        const expectedSourceChainId = client.chain?.id;
+        if (expectedSourceChainId && extractedEvent.sourceChainId !== expectedSourceChainId) {
+          throw new Error(
+            `MessageDispatched source chain (${extractedEvent.sourceChainId}) does not match RPC chain (${expectedSourceChainId})`
+          );
+        }
+
+        if (!receipt.to || log.address.toLowerCase() !== receipt.to.toLowerCase()) {
+          throw new Error('MessageDispatched event was not emitted by the transaction target');
+        }
+
+        if (extractedEvent.sourceContract.toLowerCase() !== log.address.toLowerCase()) {
+          throw new Error('MessageDispatched sourceContract does not match the emitting contract');
+        }
+
+        if (keccak256(hexToBytes(extractedEvent.payload)).toLowerCase() !== extractedEvent.payloadHash.toLowerCase()) {
+          throw new Error('MessageDispatched payloadHash does not match the emitted payload');
+        }
+
         break;
       }
     } catch {
@@ -184,7 +205,9 @@ export async function buildReceiptInclusionProof(
     txIndex: receipt.transactionIndex,
     receiptRlp: receiptRlpHex,
     mptProof: mptProofHex,
-    payload: extractedEvent.payload
+    payload: extractedEvent.payload,
+    messageId: extractedEvent.messageId,
+    payloadHash: extractedEvent.payloadHash
   };
 
   const durationMs = Date.now() - startTime;

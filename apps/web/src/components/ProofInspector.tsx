@@ -46,10 +46,10 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
 
   if (!proof) {
     return (
-      <div className="bg-[#111317] border border-[#21252d] rounded-xl p-8 text-center text-zinc-500 font-mono text-xs space-y-2">
-        <Database className="w-8 h-8 text-zinc-600 mx-auto" />
-        <p className="text-zinc-400 font-semibold">Evidence Inspector Standby</p>
-        <p className="text-[11px] text-zinc-500 max-w-sm mx-auto">
+      <div className="surface-card space-y-2 p-8 text-center text-xs text-muted">
+        <Database className="mx-auto h-8 w-8 text-muted" />
+        <p className="font-semibold text-secondary">Evidence Inspector Standby</p>
+        <p className="mx-auto max-w-sm text-[11px]">
           Submit a source transaction hash or select an item from recent verification history to inspect cryptographic Patricia Trie proof nodes, canonical RLP receipt bytes, and on-chain verification telemetry.
         </p>
       </div>
@@ -63,21 +63,21 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
   const receiptSizeBytes = Math.max(0, (proof.receiptRlp.length - 2) / 2);
 
   return (
-    <div className="bg-[#111317] border border-[#21252d] rounded-xl p-5 shadow-lg space-y-4 font-mono">
+    <div className="surface-card space-y-4 p-5">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800/80 pb-3 gap-2">
+      <div className="flex flex-col justify-between gap-2 border-b border-[var(--line)] pb-3 sm:flex-row sm:items-center">
         <div className="flex items-center space-x-2">
-          <Binary className="w-4 h-4 text-cyan-400" />
-          <h3 className="text-sm font-semibold text-zinc-100">
+          <Binary className="h-4 w-4 accent-text" />
+          <h3 className="text-sm font-semibold text-primary">
             Cryptographic Evidence Inspector
           </h3>
         </div>
         <div className="flex items-center space-x-2 text-[10px]">
-          <span className="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 flex items-center space-x-1">
-            <ShieldCheck className="w-3 h-3" />
-            <span>MPT Verified</span>
+          <span className={`status-pill ${status === 'VERIFIED' ? 'tag-success' : 'tag-warning'}`}>
+            <ShieldCheck className="h-3 w-3" />
+            <span>{status === 'VERIFIED' ? 'MPT Verified' : 'Evidence Retrieved'}</span>
           </span>
-          <span className="px-2 py-0.5 rounded bg-[#161a22] text-zinc-300 border border-zinc-800">
+          <span className="tag tag-neutral">
             EIP-2718 / RLP
           </span>
         </div>
@@ -87,13 +87,13 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 text-xs">
         {/* Verification ID */}
         {verificationId && (
-          <div className="bg-[#0c0e12] border border-[#1b1f26] p-2.5 rounded-lg flex items-center justify-between">
-            <span className="text-zinc-500 text-[11px]">Verification ID:</span>
+          <div className="surface-inset flex items-center justify-between p-2.5">
+            <span className="text-[11px] text-muted">Verification ID:</span>
             <div className="flex items-center space-x-1.5">
-              <span className="text-zinc-200 font-semibold">{verificationId}</span>
+               <span className="technical-data font-semibold text-primary">{verificationId}</span>
               <button
                 onClick={() => copyToClipboard(verificationId, 'verId')}
-                className="text-zinc-400 hover:text-cyan-400 p-0.5 transition"
+                 className="p-0.5 text-secondary transition hover:text-[var(--accent)]"
                 title="Copy verification ID"
               >
                 {copiedKey === 'verId' ? (
@@ -108,15 +108,15 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
 
         {/* Domain-Separated Message ID */}
         {messageId && (
-          <div className="bg-[#0c0e12] border border-[#1b1f26] p-2.5 rounded-lg flex items-center justify-between">
-            <span className="text-zinc-500 text-[11px]">Message ID:</span>
+          <div className="surface-inset flex items-center justify-between p-2.5">
+            <span className="text-[11px] text-muted">Message ID:</span>
             <div className="flex items-center space-x-1.5">
-              <span className="text-cyan-300 font-mono">
+               <span className="technical-data accent-text">
                 {messageId.slice(0, 10)}...{messageId.slice(-8)}
               </span>
               <button
                 onClick={() => copyToClipboard(messageId, 'msgId')}
-                className="text-zinc-400 hover:text-cyan-400 p-0.5 transition"
+                 className="p-0.5 text-secondary transition hover:text-[var(--accent)]"
                 title="Copy full message ID"
               >
                 {copiedKey === 'msgId' ? (
@@ -130,16 +130,16 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
         )}
 
         {/* Source Block and Hash */}
-        <div className="bg-[#0c0e12] border border-[#1b1f26] p-2.5 rounded-lg flex items-center justify-between">
-          <span className="text-zinc-500 text-[11px]">Source Block:</span>
+        <div className="surface-inset flex items-center justify-between p-2.5">
+          <span className="text-[11px] text-muted">Source Block:</span>
           <div className="flex items-center space-x-1.5">
-            <span className="text-zinc-200 font-semibold">#{proof.blockNumber}</span>
-            <span className="text-zinc-500 text-[10px]">
+            <span className="technical-data font-semibold text-primary">#{proof.blockNumber}</span>
+            <span className="technical-data text-[10px] text-muted">
               ({proof.blockHash.slice(0, 8)}...)
             </span>
             <button
               onClick={() => copyToClipboard(proof.blockHash, 'bHash')}
-              className="text-zinc-400 hover:text-cyan-400 p-0.5 transition"
+              className="p-0.5 text-secondary transition hover:text-[var(--accent)]"
             >
               {copiedKey === 'bHash' ? (
                 <Check className="w-3 h-3 text-emerald-400" />
@@ -151,23 +151,23 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
         </div>
 
         {/* Tx Index in Block */}
-        <div className="bg-[#0c0e12] border border-[#1b1f26] p-2.5 rounded-lg flex items-center justify-between">
-          <span className="text-zinc-500 text-[11px]">Trie Key:</span>
-          <span className="text-zinc-200">
-            txIndex <strong className="text-cyan-400">#{proof.txIndex}</strong>
+        <div className="surface-inset flex items-center justify-between p-2.5">
+          <span className="text-[11px] text-muted">Trie Key:</span>
+          <span className="technical-data text-primary">
+            txIndex <strong className="accent-text">#{proof.txIndex}</strong>
           </span>
         </div>
 
         {/* Source Bridge Address */}
-        <div className="bg-[#0c0e12] border border-[#1b1f26] p-2.5 rounded-lg flex items-center justify-between">
-          <span className="text-zinc-500 text-[11px]">Source Bridge:</span>
+        <div className="surface-inset flex items-center justify-between p-2.5">
+          <span className="text-[11px] text-muted">Source Bridge:</span>
           <div className="flex items-center space-x-1.5">
-            <span className="text-zinc-300">
+            <span className="technical-data text-primary">
               {proof.sourceContract.slice(0, 8)}...{proof.sourceContract.slice(-6)}
             </span>
             <button
               onClick={() => copyToClipboard(proof.sourceContract, 'srcBridge')}
-              className="text-zinc-400 hover:text-cyan-400 p-0.5 transition"
+              className="p-0.5 text-secondary transition hover:text-[var(--accent)]"
             >
               {copiedKey === 'srcBridge' ? (
                 <Check className="w-3 h-3 text-emerald-400" />
@@ -179,15 +179,15 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
         </div>
 
         {/* Receipts Root */}
-        <div className="bg-[#0c0e12] border border-[#1b1f26] p-2.5 rounded-lg flex items-center justify-between">
-          <span className="text-zinc-500 text-[11px]">ReceiptsRoot:</span>
+        <div className="surface-inset flex items-center justify-between p-2.5">
+          <span className="text-[11px] text-muted">ReceiptsRoot:</span>
           <div className="flex items-center space-x-1.5">
-            <span className="text-cyan-300">
+            <span className="technical-data accent-text">
               {proof.receiptsRoot.slice(0, 8)}...{proof.receiptsRoot.slice(-6)}
             </span>
             <button
               onClick={() => copyToClipboard(proof.receiptsRoot, 'recRoot')}
-              className="text-zinc-400 hover:text-cyan-400 p-0.5 transition"
+              className="p-0.5 text-secondary transition hover:text-[var(--accent)]"
             >
               {copiedKey === 'recRoot' ? (
                 <Check className="w-3 h-3 text-emerald-400" />
@@ -200,15 +200,15 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
 
         {/* Destination Transaction Hash */}
         {destinationTxHash && (
-          <div className="bg-[#0c0e12] border border-[#1b1f26] p-2.5 rounded-lg flex items-center justify-between col-span-1 md:col-span-2">
-            <span className="text-zinc-500 text-[11px]">Destination Tx Hash:</span>
+          <div className="surface-inset col-span-1 flex items-center justify-between p-2.5 md:col-span-2">
+            <span className="text-[11px] text-muted">Destination Tx Hash:</span>
             <div className="flex items-center space-x-1.5 truncate">
-              <span className="text-emerald-400 font-semibold truncate">
+              <span className="technical-data success-text truncate font-semibold">
                 {destinationTxHash}
               </span>
               <button
                 onClick={() => copyToClipboard(destinationTxHash, 'destTx')}
-                className="text-zinc-400 hover:text-cyan-400 p-0.5 transition shrink-0"
+                className="shrink-0 p-0.5 text-secondary transition hover:text-[var(--accent)]"
               >
                 {copiedKey === 'destTx' ? (
                   <Check className="w-3 h-3 text-emerald-400" />
@@ -223,59 +223,59 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
 
       {/* Proof Performance Telemetry Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-        <div className="bg-[#0c0e12] p-2.5 rounded-lg border border-[#1b1f26]">
-          <span className="text-zinc-500 block text-[10px]">Proof Nodes:</span>
-          <span className="text-zinc-200 font-bold">{proof.mptProof.length} node(s)</span>
+        <div className="surface-inset p-2.5">
+          <span className="block text-[10px] text-muted">Proof Nodes:</span>
+          <span className="technical-data font-bold text-primary">{proof.mptProof.length} node(s)</span>
         </div>
-        <div className="bg-[#0c0e12] p-2.5 rounded-lg border border-[#1b1f26]">
-          <span className="text-zinc-500 block text-[10px]">Proof Size:</span>
-          <span className="text-zinc-200 font-bold">{proofSizeBytes} bytes</span>
+        <div className="surface-inset p-2.5">
+          <span className="block text-[10px] text-muted">Proof Size:</span>
+          <span className="technical-data font-bold text-primary">{proofSizeBytes} bytes</span>
         </div>
-        <div className="bg-[#0c0e12] p-2.5 rounded-lg border border-[#1b1f26]">
-          <span className="text-zinc-500 block text-[10px]">Destination Gas:</span>
-          <span className="text-zinc-200 font-bold">
-            {gasUsed ? Number(gasUsed).toLocaleString() : '241,830'}
+        <div className="surface-inset p-2.5">
+          <span className="block text-[10px] text-muted">Destination Gas:</span>
+          <span className="technical-data font-bold text-primary">
+            {gasUsed ? Number(gasUsed).toLocaleString() : 'N/A'}
           </span>
         </div>
-        <div className="bg-[#0c0e12] p-2.5 rounded-lg border border-[#1b1f26]">
-          <span className="text-zinc-500 block text-[10px]">Proof Latency:</span>
-          <span className="text-zinc-200 font-bold">
-            {durationMs ? `${durationMs}ms` : '38ms'}
+        <div className="surface-inset p-2.5">
+          <span className="block text-[10px] text-muted">Proof Latency:</span>
+          <span className="technical-data font-bold text-primary">
+            {durationMs ? `${durationMs}ms` : 'N/A'}
           </span>
         </div>
       </div>
 
       {/* Expandable: MPT Proof Nodes */}
-      <div className="border border-[#1f242d] rounded-lg overflow-hidden text-xs">
+      <div className="overflow-hidden rounded border border-[var(--line)] text-xs">
         <button
           onClick={() => setExpandedNodes(!expandedNodes)}
-          className="w-full bg-[#0e1015] px-3.5 py-2.5 flex items-center justify-between text-zinc-300 hover:bg-[#13161c] transition"
+          className="flex w-full items-center justify-between bg-[var(--surface-muted)] px-3.5 py-2.5 text-primary transition hover:bg-[var(--surface-raised)]"
         >
           <span className="flex items-center space-x-2">
-            <Database className="w-3.5 h-3.5 text-cyan-400" />
+            <Database className="h-3.5 w-3.5 accent-text" />
             <span className="font-semibold">
               Patricia Trie Proof Nodes ({proof.mptProof.length})
             </span>
           </span>
-          <div className="flex items-center space-x-2 text-[11px] text-zinc-500">
+          <div className="flex items-center space-x-2 text-[11px] text-muted">
             <span>{proofSizeBytes} bytes total</span>
             {expandedNodes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
         </button>
 
         {expandedNodes && (
-          <div className="p-3 bg-[#0a0b0e] space-y-2.5 max-h-64 overflow-y-auto border-t border-[#1f242d]">
+          <div className="max-h-64 space-y-2.5 overflow-y-auto border-t border-[var(--line)] bg-[var(--surface-inset)] p-3">
             {proof.mptProof.map((node, i) => {
               const nodeBytes = Math.max(0, (node.length - 2) / 2);
               return (
-                <div key={i} className="p-2.5 bg-[#0e1015] rounded-lg border border-[#1b1f26]">
-                  <div className="flex items-center justify-between text-[11px] text-zinc-400 mb-1.5">
-                    <span className="font-semibold text-zinc-300">
+                <div key={i} className="surface-card-raised p-2.5">
+                  <div className="mb-1.5 flex items-center justify-between text-[11px] text-secondary">
+                    <span className="font-semibold text-primary">
                       Node #{i} ({nodeBytes} bytes)
                     </span>
                     <button
                       onClick={() => copyToClipboard(node, `node-${i}`)}
-                      className="text-cyan-400 hover:underline flex items-center space-x-1"
+                      className="accent-text flex items-center space-x-1 hover:underline"
                     >
                       {copiedKey === `node-${i}` ? (
                         <span className="text-emerald-400">Copied!</span>
@@ -284,7 +284,7 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
                       )}
                     </button>
                   </div>
-                  <div className="text-[10px] text-zinc-400 break-all bg-black/50 p-2 rounded border border-zinc-800/60 font-mono select-all">
+                  <div className="technical-data break-all rounded border border-[var(--line)] bg-[var(--surface)] p-2 text-[10px] text-secondary select-all">
                     {node}
                   </div>
                 </div>
@@ -295,35 +295,35 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
       </div>
 
       {/* Expandable: Canonical Ethereum RLP Receipt */}
-      <div className="border border-[#1f242d] rounded-lg overflow-hidden text-xs">
+      <div className="overflow-hidden rounded border border-[var(--line)] text-xs">
         <button
           onClick={() => setExpandedReceipt(!expandedReceipt)}
-          className="w-full bg-[#0e1015] px-3.5 py-2.5 flex items-center justify-between text-zinc-300 hover:bg-[#13161c] transition"
+          className="flex w-full items-center justify-between bg-[var(--surface-muted)] px-3.5 py-2.5 text-primary transition hover:bg-[var(--surface-raised)]"
         >
           <span className="flex items-center space-x-2">
-            <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+            <Cpu className="h-3.5 w-3.5 accent-text" />
             <span className="font-semibold">
               RLP-Encoded Receipt ({receiptSizeBytes} bytes)
             </span>
           </span>
-          <div className="flex items-center space-x-2 text-[11px] text-zinc-500">
+          <div className="flex items-center space-x-2 text-[11px] text-muted">
             <span>Payload & Logs</span>
             {expandedReceipt ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </div>
         </button>
 
         {expandedReceipt && (
-          <div className="p-3 bg-[#0a0b0e] space-y-2 border-t border-[#1f242d]">
-            <div className="flex items-center justify-between text-[11px] text-zinc-400">
+          <div className="space-y-2 border-t border-[var(--line)] bg-[var(--surface-inset)] p-3">
+            <div className="flex items-center justify-between text-[11px] text-secondary">
               <span>Canonical Ethereum Receipt Payload (Status, Gas, Bloom, Logs)</span>
               <button
                 onClick={() => copyToClipboard(proof.receiptRlp, 'rcptRlp')}
-                className="text-cyan-400 hover:underline"
+                className="accent-text hover:underline"
               >
                 {copiedKey === 'rcptRlp' ? 'Copied' : 'Copy Full Hex'}
               </button>
             </div>
-            <div className="text-[10px] text-zinc-400 break-all bg-black/50 p-2.5 rounded border border-zinc-800/60 font-mono max-h-40 overflow-y-auto select-all">
+            <div className="technical-data max-h-40 overflow-y-auto break-all rounded border border-[var(--line)] bg-[var(--surface)] p-2.5 text-[10px] text-secondary select-all">
               {proof.receiptRlp}
             </div>
           </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   History,
   Search,
@@ -25,6 +25,15 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
   const [chainFilter, setChainFilter] = useState<string>('ALL');
   const [selectedRecord, setSelectedRecord] = useState<VerificationRecord | null>(null);
 
+  useEffect(() => {
+    if (!selectedRecord) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedRecord(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedRecord]);
+
   const filteredRecords = records.filter((r) => {
     const matchesStatus =
       statusFilter === 'ALL' || r.status.toUpperCase() === statusFilter;
@@ -46,46 +55,46 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
       {/* Header */}
       <div>
         <div className="flex items-center space-x-2">
-          <History className="w-6 h-6 text-cyan-400" />
-          <h1 className="text-xl sm:text-2xl font-bold font-mono text-zinc-100">
+          <History className="h-6 w-6 accent-text" />
+          <h1 className="text-xl font-bold text-strong sm:text-2xl">
             Verification Provenance Ledger
           </h1>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/50">
+          <span className="tag tag-accent">
             Immutable Audit Trail
           </span>
         </div>
-        <p className="text-xs text-zinc-400 mt-1">
+        <p className="mt-1 text-sm leading-6 text-secondary">
           Complete historical ledger of all cross-chain proofs verified or rejected on the destination blockchain.
         </p>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-[#111317] border border-[#21252d] rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 font-mono text-xs">
+      <div className="surface-card flex flex-col items-center justify-between gap-3 p-4 text-xs md:flex-row">
         {/* Search */}
         <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search hash, message ID, or ver ID..."
-            className="w-full bg-[#0c0e12] border border-zinc-700/80 rounded-lg pl-9 pr-3 py-2 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+            className="theme-input w-full px-3 py-2 pl-9 text-xs"
           />
         </div>
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {/* Status Filter */}
-          <div className="flex items-center space-x-1 bg-[#0c0e12] p-1 rounded-lg border border-zinc-800">
-            <span className="text-zinc-500 text-[10px] px-1.5">Status:</span>
+          <div className="surface-inset flex items-center space-x-1 p-1">
+            <span className="px-1.5 text-[10px] text-muted">Status:</span>
             {(['ALL', 'VERIFIED', 'REJECTED'] as const).map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
                 className={`px-2.5 py-1 rounded text-xs font-semibold transition ${
                   statusFilter === s
-                    ? 'bg-[#181c24] text-cyan-300 border border-cyan-500/30'
-                    : 'text-zinc-400 hover:text-zinc-200'
+                     ? 'tag tag-accent'
+                     : 'text-secondary hover:text-primary'
                 }`}
               >
                 {s}
@@ -97,7 +106,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
           <select
             value={chainFilter}
             onChange={(e) => setChainFilter(e.target.value)}
-            className="bg-[#0c0e12] border border-zinc-800 rounded-lg px-2.5 py-1.5 text-xs text-zinc-300 focus:outline-none focus:border-cyan-500"
+            className="theme-select w-auto px-2.5 py-1.5 text-xs"
           >
             <option value="ALL">All Networks</option>
             <option value="31337">Chain 31337 (ETH Local)</option>
@@ -107,11 +116,11 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
       </div>
 
       {/* History Table */}
-      <div className="bg-[#111317] border border-[#21252d] rounded-xl overflow-hidden shadow-sm">
+      <div className="surface-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs">
+           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="bg-[#0e1014] border-b border-zinc-800 text-zinc-400 text-[11px]">
+               <tr className="border-b border-[var(--line)] bg-[var(--surface-muted)] text-[11px] text-muted">
                 <th className="py-3 px-4">Verification ID</th>
                 <th className="py-3 px-4">Origin Tx Hash</th>
                 <th className="py-3 px-4">Source Block</th>
@@ -124,7 +133,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
             <tbody className="divide-y divide-zinc-800/40">
               {filteredRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-zinc-500">
+                   <td colSpan={7} className="py-12 text-center text-muted">
                     No verification records found matching your query.
                   </td>
                 </tr>
@@ -132,22 +141,30 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
                 filteredRecords.map((r) => (
                   <tr
                     key={r.verificationId}
-                    className="hover:bg-zinc-900/40 transition cursor-pointer"
+                     className="cursor-pointer transition hover:bg-[var(--surface-muted)]"
                     onClick={() => setSelectedRecord(r)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setSelectedRecord(r);
+                      }
+                    }}
+                    tabIndex={0}
+                    role="button"
                   >
-                    <td className="py-3 px-4 font-bold text-zinc-200">
+                     <td className="py-3 px-4 font-bold text-primary">
                       {r.verificationId}
                     </td>
-                    <td className="py-3 px-4 text-cyan-400 hover:underline">
+                     <td className="technical-data py-3 px-4 accent-text hover:underline">
                       {r.sourceTxHash.slice(0, 10)}...{r.sourceTxHash.slice(-8)}
                     </td>
-                    <td className="py-3 px-4 text-zinc-300">
-                      #{r.blockNumber} <span className="text-zinc-500">(tx #{r.txIndex})</span>
+                     <td className="technical-data py-3 px-4 text-primary">
+                       #{r.blockNumber} <span className="text-muted">(tx #{r.txIndex})</span>
                     </td>
-                    <td className="py-3 px-4 text-zinc-300">
+                     <td className="py-3 px-4 text-primary">
                       {r.sourceChainId} &rarr; {r.destinationChainId}
                     </td>
-                    <td className="py-3 px-4 text-zinc-400">
+                     <td className="technical-data py-3 px-4 text-secondary">
                       {r.gasUsed ? Number(r.gasUsed).toLocaleString() : 'N/A'}
                     </td>
                     <td className="py-3 px-4">
@@ -159,7 +176,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
                           e.stopPropagation();
                           setSelectedRecord(r);
                         }}
-                        className="text-cyan-400 hover:text-cyan-300 hover:underline text-[11px]"
+                         className="accent-text text-[11px] hover:underline"
                       >
                         Inspect &rarr;
                       </button>
@@ -174,47 +191,37 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
 
       {/* Record Slide-over / Modal Drawer */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#111317] border border-[#21252d] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(5,10,20,0.56)] p-4 backdrop-blur-sm" onClick={() => setSelectedRecord(null)}>
+          <div className="surface-card max-h-[90vh] w-full max-w-3xl space-y-4 overflow-y-auto p-6" role="dialog" aria-modal="true" aria-labelledby="verification-detail-title" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-[var(--line)] pb-3">
               <div className="flex items-center space-x-2">
-                <Database className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-base font-bold font-mono text-zinc-100">
+                <Database className="h-5 w-5 accent-text" />
+                <h3 id="verification-detail-title" className="text-base font-bold text-primary">
                   Verification Detail: {selectedRecord.verificationId}
                 </h3>
               </div>
               <button
                 onClick={() => setSelectedRecord(null)}
-                className="text-zinc-400 hover:text-zinc-200 p-1 rounded-md hover:bg-zinc-800 transition"
+                 className="rounded-md p-1 text-secondary transition hover:bg-[var(--surface-muted)] hover:text-primary"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <ProofInspector
+             <ProofInspector
               verificationId={selectedRecord.verificationId}
               messageId={selectedRecord.messageId}
               destinationTxHash={selectedRecord.destinationTxHash}
               gasUsed={selectedRecord.gasUsed}
               durationMs={selectedRecord.proofTimeMs}
               status={selectedRecord.status}
-              proof={{
-                sourceChainId: selectedRecord.sourceChainId,
-                sourceContract: selectedRecord.sourceContract,
-                blockNumber: selectedRecord.blockNumber,
-                blockHash: selectedRecord.sourceTxHash,
-                receiptsRoot: selectedRecord.payloadHash,
-                txIndex: selectedRecord.txIndex,
-                receiptRlp: '0xf84e0132b90100...',
-                mptProof: ['0xf84b2080f84601...'],
-                payload: selectedRecord.payload
-              }}
+               proof={selectedRecord.proof}
             />
 
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setSelectedRecord(null)}
-                className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg text-xs font-mono transition"
+                className="button-secondary px-4 py-2 text-xs"
               >
                 Close Drawer
               </button>
