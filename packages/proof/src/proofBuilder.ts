@@ -42,22 +42,38 @@ export async function buildReceiptInclusionProof(
 ): Promise<ProofGenerationResult> {
   const startTime = Date.now();
 
+  if (!txHash || typeof txHash !== 'string' || !txHash.startsWith('0x') || txHash.length !== 66) {
+    throw new Error(`Invalid transaction hash format: ${txHash}`);
+  }
+
   // 1. Fetch transaction receipt
   const receipt = await client.getTransactionReceipt({ hash: txHash });
   if (!receipt) {
     throw new Error(`Receipt not found for transaction hash ${txHash}`);
+  }
+  if (receipt.transactionHash && receipt.transactionHash.toLowerCase() !== txHash.toLowerCase()) {
+    throw new Error(`Retrieved receipt transaction hash (${receipt.transactionHash}) does not match requested transaction hash (${txHash})`);
+  }
+  if (receipt.transactionIndex === undefined || receipt.transactionIndex === null || receipt.transactionIndex < 0) {
+    throw new Error(`Invalid or missing transaction index for transaction ${txHash}`);
   }
   if (receipt.status !== 'success') {
     throw new Error(`Transaction ${txHash} failed on source chain (status: ${receipt.status})`);
   }
 
   // 2. Fetch full block including all transactions
+  if (!receipt.blockHash) {
+    throw new Error(`Receipt for transaction ${txHash} is missing blockHash`);
+  }
   const block = await client.getBlock({
     blockHash: receipt.blockHash,
     includeTransactions: true
   });
   if (!block) {
     throw new Error(`Block not found for hash ${receipt.blockHash}`);
+  }
+  if (block.number === undefined || block.number === null) {
+    throw new Error(`Block ${receipt.blockHash} is missing block number`);
   }
 
   const transaction = await client.getTransaction({ hash: txHash });
@@ -92,12 +108,25 @@ export async function buildReceiptInclusionProof(
     await trie.put(key, value);
   }
 
+<<<<<<< HEAD
   const receiptsRoot = bytesToHex(trie.root());
   if (receiptsRoot.toLowerCase() !== block.receiptsRoot.toLowerCase()) {
     throw new Error(
       `Receipt trie root mismatch for block ${block.number}: reconstructed ${receiptsRoot}, canonical ${block.receiptsRoot}`
     );
   }
+=======
+  const reconstructedRoot = bytesToHex(trie.root());
+  const canonicalRoot = block.receiptsRoot;
+
+  if (reconstructedRoot.toLowerCase() !== canonicalRoot.toLowerCase()) {
+    throw new Error(
+      `Receipts root mismatch: reconstructed root (${reconstructedRoot}) does not match canonical source block receiptsRoot (${canonicalRoot})`
+    );
+  }
+
+  const receiptsRoot = reconstructedRoot;
+>>>>>>> origin/main
 
   // 5. Generate cryptographic inclusion proof for the target receipt
   const targetKey = encodeTxIndexToRlp(receipt.transactionIndex);
