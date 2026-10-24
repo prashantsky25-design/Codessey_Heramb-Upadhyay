@@ -23,6 +23,8 @@ interface ProofInspectorProps {
   durationMs?: number;
   status?: string;
   messageId?: string;
+  inclusionVerified?: boolean;
+  trustMode?: string;
 }
 
 export const ProofInspector: React.FC<ProofInspectorProps> = ({
@@ -31,8 +33,10 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
   destinationTxHash,
   gasUsed,
   durationMs,
-  status = 'VERIFIED',
-  messageId
+  status = 'IDLE',
+  messageId,
+  inclusionVerified = false,
+  trustMode
 }) => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState(false);
@@ -61,9 +65,13 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
     0
   );
   const receiptSizeBytes = Math.max(0, (proof.receiptRlp.length - 2) / 2);
+  const statusLabel = inclusionVerified ? 'MPT Verified' : 'Proof Captured';
+  const statusClasses = inclusionVerified
+    ? 'bg-emerald-950/60 text-emerald-400 border-emerald-800/50'
+    : 'bg-amber-950/60 text-amber-300 border-amber-800/50';
 
   return (
-    <div className="bg-[#111317] border border-[#21252d] rounded-xl p-5 shadow-lg space-y-4 font-mono">
+    <div className="bg-[#111317] border border-[#21252d] rounded-xl p-5 shadow-lg space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800/80 pb-3 gap-2">
         <div className="flex items-center space-x-2">
@@ -73,10 +81,15 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
           </h3>
         </div>
         <div className="flex items-center space-x-2 text-[10px]">
-          <span className="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 flex items-center space-x-1">
+          <span className={`px-2 py-0.5 rounded border flex items-center space-x-1 ${statusClasses}`}>
             <ShieldCheck className="w-3 h-3" />
-            <span>MPT Verified</span>
+            <span>{statusLabel}</span>
           </span>
+          {trustMode && (
+            <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/50">
+              {trustMode === 'MODE_A_LOCAL_ORACLE' ? 'MODE A' : trustMode}
+            </span>
+          )}
           <span className="px-2 py-0.5 rounded bg-[#161a22] text-zinc-300 border border-zinc-800">
             EIP-2718 / RLP
           </span>
@@ -234,13 +247,13 @@ export const ProofInspector: React.FC<ProofInspectorProps> = ({
         <div className="bg-[#0c0e12] p-2.5 rounded-lg border border-[#1b1f26]">
           <span className="text-zinc-500 block text-[10px]">Destination Gas:</span>
           <span className="text-zinc-200 font-bold">
-            {gasUsed ? Number(gasUsed).toLocaleString() : '241,830'}
+            {gasUsed ? Number(gasUsed).toLocaleString() : '—'}
           </span>
         </div>
         <div className="bg-[#0c0e12] p-2.5 rounded-lg border border-[#1b1f26]">
           <span className="text-zinc-500 block text-[10px]">Proof Latency:</span>
           <span className="text-zinc-200 font-bold">
-            {durationMs ? `${durationMs}ms` : '38ms'}
+            {durationMs ? `${durationMs}ms` : '—'}
           </span>
         </div>
       </div>

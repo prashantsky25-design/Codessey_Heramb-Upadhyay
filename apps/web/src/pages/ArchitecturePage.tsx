@@ -44,7 +44,7 @@ export const ArchitecturePage: React.FC = () => {
         </div>
 
         {/* 3 Main Stages */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           {/* Step 1: Origin Chain */}
           <div className="bg-[#0e1014] border border-[#1b1f26] p-4 rounded-xl space-y-2.5">
             <div className="flex items-center justify-between">
@@ -119,7 +119,7 @@ export const ArchitecturePage: React.FC = () => {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
           {/* Interface 1: IHeaderVerifier */}
           <div className="p-4 bg-[#0e1014] rounded-lg border border-[#1b1f26] space-y-2">
             <div className="flex items-center justify-between">
@@ -133,7 +133,7 @@ export const ArchitecturePage: React.FC = () => {
               production light-clients or ZK-consensus proofs can be swapped seamlessly without modifying application verifiers.
             </p>
             <div className="text-[10px] text-zinc-500 pt-1 border-t border-zinc-800/60">
-              Active: <code>DevHeaderOracle.sol</code> &bull; Upgrade: <code>LightClientHeaderVerifier.sol</code>
+              Active demo: <code>DevHeaderOracle.sol</code> &bull; Experimental prototype: <code>LightClientHeaderVerifier.sol</code>
             </div>
           </div>
 

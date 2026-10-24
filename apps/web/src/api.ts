@@ -124,3 +124,34 @@ export async function runAttack(
   });
   return res.json();
 }
+
+export async function generateTestTransaction(
+  sourceChainId: number = 31337,
+  destinationChainId: number = 31338,
+  payload?: string
+): Promise<{
+  status: string;
+  transaction: {
+    hash: string;
+    chainId: number;
+    blockNumber: number;
+    blockHash: string;
+    transactionIndex: number;
+    status: string;
+    messageId: string | null;
+    payload: string;
+    destinationChainId: number;
+  };
+}> {
+  const res = await fetch(`${API_BASE}/transactions/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sourceChainId, destinationChainId, payload })
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Failed to generate test transaction');
+  }
+  return data;
+}

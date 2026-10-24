@@ -13,7 +13,7 @@ import {
 
 export const SecurityPage: React.FC = () => {
   return (
-    <div className="space-y-6 font-mono text-xs">
+    <div className="space-y-6 text-xs">
       {/* Page Header */}
       <div>
         <div className="flex items-center space-x-2">
@@ -38,7 +38,7 @@ export const SecurityPage: React.FC = () => {
             <span>Cryptographically Verified On-Chain Guarantees</span>
           </h2>
           <span className="text-[10px] text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
-            Zero Relayer Trust
+            Receipt Proof Checks
           </span>
         </div>
 
@@ -119,13 +119,13 @@ export const SecurityPage: React.FC = () => {
           {/* Mode B */}
           <div className="p-4 bg-cyan-950/20 rounded-lg border border-cyan-800/40 space-y-2">
             <div className="text-cyan-300 font-bold flex items-center space-x-1.5 text-xs">
-              <span>MODE B: Light Client Consensus Verifier (Production Spec)</span>
+              <span>MODE B: Experimental Header Attestation Prototype</span>
             </div>
             <p className="text-zinc-300 text-[11px] leading-relaxed">
-              <strong>Purpose:</strong> Trust-minimized production deployment across independent blockchains.
+              <strong>Purpose:</strong> Future trust-minimized deployment across independent blockchains.
             </p>
             <p className="text-zinc-400 text-[11px] leading-relaxed">
-              <strong>Mechanism:</strong> Implemented in <code>LightClientHeaderVerifier.sol</code>: validates RLP execution header integrity, confirms <code>blockHash == keccak256(headerRlp)</code>, extracts <code>receiptsRoot</code> from header field 5, and verifies cryptographic consensus committee signatures against a trusted checkpoint.
+              <strong>Current status:</strong> <code>LightClientHeaderVerifier.sol</code> validates an RLP header hash, extracts <code>receiptsRoot</code>, and checks one trusted signer. It is not a production Ethereum consensus light client and is not active in the local demo.
             </p>
           </div>
         </div>

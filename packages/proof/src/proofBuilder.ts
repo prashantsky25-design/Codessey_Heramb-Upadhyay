@@ -60,6 +60,11 @@ export async function buildReceiptInclusionProof(
     throw new Error(`Block not found for hash ${receipt.blockHash}`);
   }
 
+  const transaction = await client.getTransaction({ hash: txHash });
+  if (!transaction?.to) {
+    throw new Error(`Transaction ${txHash} is not a contract call to SourceBridge`);
+  }
+
   // 3. Collect and encode receipts for all transactions in this block
   const txHashes = block.transactions.map((tx) =>
     typeof tx === 'string' ? tx : tx.hash
@@ -88,6 +93,11 @@ export async function buildReceiptInclusionProof(
   }
 
   const receiptsRoot = bytesToHex(trie.root());
+  if (receiptsRoot.toLowerCase() !== block.receiptsRoot.toLowerCase()) {
+    throw new Error(
+      `Receipt trie root mismatch for block ${block.number}: reconstructed ${receiptsRoot}, canonical ${block.receiptsRoot}`
+    );
+  }
 
   // 5. Generate cryptographic inclusion proof for the target receipt
   const targetKey = encodeTxIndexToRlp(receipt.transactionIndex);
@@ -104,6 +114,10 @@ export async function buildReceiptInclusionProof(
   let extractedEvent: ProofGenerationResult['extractedEvent'] | null = null;
 
   for (const log of receipt.logs) {
+    if (log.address.toLowerCase() !== transaction.to.toLowerCase()) {
+      continue;
+    }
+
     try {
       const decoded = decodeEventLog({
         abi: SourceBridgeAbi,
@@ -133,6 +147,11 @@ export async function buildReceiptInclusionProof(
           payload: args.payload,
           payloadHash: args.payloadHash
         };
+
+        if (args.sourceContract.toLowerCase() !== transaction.to.toLowerCase()) {
+          extractedEvent = null;
+          continue;
+        }
         break;
       }
     } catch {
@@ -159,7 +178,9 @@ export async function buildReceiptInclusionProof(
     txIndex: receipt.transactionIndex,
     receiptRlp: receiptRlpHex,
     mptProof: mptProofHex,
-    payload: extractedEvent.payload
+    payload: extractedEvent.payload,
+    messageId: extractedEvent.messageId,
+    payloadHash: extractedEvent.payloadHash
   };
 
   const durationMs = Date.now() - startTime;

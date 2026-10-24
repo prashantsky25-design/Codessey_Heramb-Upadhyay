@@ -7,7 +7,7 @@ interface SecurityBannerProps {
 
 export const SecurityBanner: React.FC<SecurityBannerProps> = ({ onReviewTrust }) => {
   return (
-    <div className="rounded-xl bg-[#121419] border border-[#232832] p-4 shadow-sm font-mono text-xs space-y-3">
+    <div className="vecna-console rounded-xl bg-[#121419] border border-[#232832] p-4 shadow-sm font-mono text-xs space-y-3">
       {/* Top Bar: Active Mode & Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1f232b] pb-3">
         <div className="flex items-center space-x-2.5">
@@ -22,7 +22,7 @@ export const SecurityBanner: React.FC<SecurityBannerProps> = ({ onReviewTrust })
 
         <button
           onClick={onReviewTrust}
-          className="inline-flex items-center space-x-1.5 px-3 py-1 bg-[#1a1e26] hover:bg-[#232834] text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 rounded text-[11px] transition self-start sm:self-auto"
+          className="vecna-button-secondary inline-flex items-center space-x-1.5 px-3 py-1 bg-[#1a1e26] hover:bg-[#232834] text-cyan-300 hover:text-cyan-200 border border-cyan-500/30 rounded text-[11px] transition self-start sm:self-auto"
         >
           <span>Review Trust Assumptions</span>
           <ChevronRight className="w-3.5 h-3.5" />
@@ -38,7 +38,7 @@ export const SecurityBanner: React.FC<SecurityBannerProps> = ({ onReviewTrust })
             <span>Receipt Inclusion</span>
           </div>
           <p className="text-zinc-400 text-[10px] leading-relaxed">
-            <strong className="text-zinc-300">100% Cryptographic:</strong> Recomputed Patricia Trie hashes over canonical RLP receipt.
+            <strong className="text-zinc-300">Proof check:</strong> Patricia Trie hashes are recomputed over the submitted RLP receipt.
           </p>
         </div>
 
@@ -60,7 +60,7 @@ export const SecurityBanner: React.FC<SecurityBannerProps> = ({ onReviewTrust })
             <span>Source Finality</span>
           </div>
           <p className="text-zinc-400 text-[10px] leading-relaxed">
-            <strong className="text-zinc-300">Single-Block Dev:</strong> Anvil instant blocks. Mode B adds Casper/PoS signature checks.
+            <strong className="text-zinc-300">Development only:</strong> Anvil blocks are immediate; this demo does not establish source-chain consensus finality.
           </p>
         </div>
 

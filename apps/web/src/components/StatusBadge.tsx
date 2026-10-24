@@ -17,7 +17,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
 
   if (isVerified) {
     return (
-      <span className={`inline-flex items-center space-x-1 rounded font-mono font-medium bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 ${sizeClasses}`}>
+      <span className={`vecna-status-success inline-flex items-center space-x-1 rounded font-medium bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 ${sizeClasses}`}>
         <CheckCircle2 className="w-3 h-3 text-emerald-400" />
         <span>VERIFIED</span>
       </span>
@@ -26,7 +26,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
 
   if (isRejected) {
     return (
-      <span className={`inline-flex items-center space-x-1 rounded font-mono font-medium bg-rose-950/60 text-rose-400 border border-rose-800/40 ${sizeClasses}`}>
+      <span className={`vecna-status-danger inline-flex items-center space-x-1 rounded font-medium bg-rose-950/60 text-rose-400 border border-rose-800/40 ${sizeClasses}`}>
         <XCircle className="w-3 h-3 text-rose-400" />
         <span>REJECTED</span>
       </span>
@@ -34,7 +34,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'md' })
   }
 
   return (
-    <span className={`inline-flex items-center space-x-1 rounded font-mono font-medium bg-amber-950/60 text-amber-400 border border-amber-800/40 ${sizeClasses}`}>
+    <span className={`vecna-status-warning inline-flex items-center space-x-1 rounded font-medium bg-amber-950/60 text-amber-400 border border-amber-800/40 ${sizeClasses}`}>
       <Clock className="w-3 h-3 text-amber-400 animate-spin" />
       <span>PENDING</span>
     </span>

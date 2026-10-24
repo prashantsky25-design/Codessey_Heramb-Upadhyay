@@ -16,22 +16,27 @@ import {
 import {
   ChainConfig,
   CrossChainProofData,
-  TimelineStage
+  TimelineStage,
+  INVALID_TRANSACTION_HASH_MESSAGE,
+  normalizeTransactionHash,
+  TransactionHashSchema
 } from '@crossproof/shared';
 import {
   prepareVerification,
   submitVerification,
-  verifyProofLocally
+  verifyProofLocally,
+  generateTestTransaction
 } from '../api';
 import { Timeline } from '../components/Timeline';
 import { ProofInspector } from '../components/ProofInspector';
 import { StatusBadge } from '../components/StatusBadge';
+import { ActiveVerification } from '../types';
 
 interface VerifyPageProps {
   chains: ChainConfig[];
   initialTxHash?: string;
   initialChainId?: number;
-  onVerificationCompleted?: () => void;
+  onVerificationCompleted?: (verification: ActiveVerification) => void;
 }
 
 const DEFAULT_STAGES: TimelineStage[] = [
@@ -41,19 +46,6 @@ const DEFAULT_STAGES: TimelineStage[] = [
   { id: 'header_finality_validated', label: '4. Source Header / Finality Validated', status: 'pending' },
   { id: 'destination_verifier_called', label: '5. Destination Verifier Invoked', status: 'pending' },
   { id: 'on_chain_confirmed', label: '6. On-Chain Result Confirmed', status: 'pending' }
-];
-
-const SAMPLE_HASHES = [
-  {
-    label: 'Live Mined Tx #3',
-    hash: '0x8bb760d32fddc2c347ecfc679a7372101cf4a64fe852c48f290490cb0af63c0f',
-    desc: 'Live mined cross-chain message on Chain 31337'
-  },
-  {
-    label: 'Demo Seed Message #1',
-    hash: '0x4a821e285a9bc811342657e841fa5cb2e33f381ad79383625f381b0163359d9f',
-    desc: 'Standard CrossChainMessage dispatched from Ethereum 31337'
-  }
 ];
 
 export const VerifyPage: React.FC<VerifyPageProps> = ({
@@ -67,8 +59,10 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
   const [txHash, setTxHash] = useState<string>(initialTxHash);
 
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [stages, setStages] = useState<TimelineStage[]>(DEFAULT_STAGES);
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   const [proofData, setProofData] = useState<CrossChainProofData | null>(null);
   const [verificationId, setVerificationId] = useState<string | null>(null);
@@ -76,6 +70,7 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
   const [gasUsed, setGasUsed] = useState<string | null>(null);
   const [durationMs, setDurationMs] = useState<number | null>(null);
   const [verifiedMessageId, setVerifiedMessageId] = useState<string | null>(null);
+  const [inclusionVerified, setInclusionVerified] = useState(false);
   const [finalStatus, setFinalStatus] = useState<'IDLE' | 'VERIFIED' | 'REJECTED'>('IDLE');
 
   useEffect(() => {
@@ -98,22 +93,50 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
     );
   };
 
+  const handleGenerateTransaction = async () => {
+    setGenerating(true);
+    setGeneralError(null);
+    setSuccessNotice(null);
+
+    try {
+      const result = await generateTestTransaction(sourceChainId, destinationChainId);
+
+      if (result.status === 'success' && result.transaction.hash) {
+        setTxHash(result.transaction.hash);
+        setGeneralError(null);
+
+        // Show success message briefly
+        const successMsg = `✅ Test transaction generated! Hash: ${result.transaction.hash.slice(0, 16)}...`;
+        setSuccessNotice(successMsg);
+        setTimeout(() => setSuccessNotice(null), 3000);
+      }
+    } catch (err: any) {
+      setGeneralError(err?.message || 'Failed to generate test transaction');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleVerify = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    const cleanHash = txHash.trim();
-    if (!cleanHash.startsWith('0x') || cleanHash.length !== 66) {
-      setGeneralError(
-        'Invalid transaction hash format. Must be a 32-byte hex string (0x followed by 64 hexadecimal characters).'
-      );
+    const cleanHash = normalizeTransactionHash(txHash);
+    const hashResult = TransactionHashSchema.safeParse(cleanHash);
+    if (!hashResult.success) {
+      setGeneralError(hashResult.error.issues[0]?.message || INVALID_TRANSACTION_HASH_MESSAGE);
       return;
     }
 
+    // Keep the controlled input and every retry on the same canonical value.
+    setTxHash(hashResult.data);
+
     setLoading(true);
     setGeneralError(null);
+    setSuccessNotice(null);
     setProofData(null);
     setDestinationTxHash(null);
     setGasUsed(null);
+    setInclusionVerified(false);
     setFinalStatus('IDLE');
 
     // Reset stages to waiting
@@ -174,15 +197,22 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
         'completed',
         `Root matched: ${prepareResult.proof.receiptsRoot.slice(0, 18)}...`
       );
+      setInclusionVerified(true);
 
       // STAGE 4: Source Header / Finality
       updateStage('header_finality_validated', 'in_progress', 'Validating source header in IHeaderVerifier...');
 
-      updateStage(
-        'header_finality_validated',
-        'completed',
-        'Source header authenticated and finalized in DevHeaderOracle'
-      );
+      if (!verifyCheck.checks?.headerAuthenticityValid) {
+        updateStage(
+          'header_finality_validated',
+          'failed',
+          undefined,
+          'The source header was not authenticated by the configured verifier. The local demo uses an authorized Mode A header oracle, not consensus finality.'
+        );
+        throw new Error('Source header commitment could not be verified');
+      }
+
+      updateStage('header_finality_validated', 'completed', 'Source header commitment checked in Mode A DevHeaderOracle');
 
       // STAGE 5: Destination Verifier Invoked
       updateStage(
@@ -218,7 +248,14 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
       setFinalStatus('VERIFIED');
 
       if (onVerificationCompleted) {
-        onVerificationCompleted();
+        onVerificationCompleted({
+          proof: prepareResult.proof,
+          sourceChainId,
+          destinationChainId,
+          verificationId: prepareResult.verificationId,
+          messageId: prepareResult.extractedEvent.messageId,
+          destinationTxHash: submitResult.destinationTxHash
+        });
       }
     } catch (err: any) {
       const msg = err?.message || 'Verification pipeline encountered an error';
@@ -232,12 +269,6 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleUseSample = (hash: string) => {
-    setTxHash(hash);
-    setSourceChainId(31337);
-    setDestinationChainId(31338);
   };
 
   return (
@@ -255,12 +286,12 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
         </div>
         <p className="text-xs text-zinc-400 mt-1">
           Submit an origin chain transaction hash. CrossProof will extract the Patricia Merkle Trie receipt proof,
-          verify root convergence, check header commitments, and execute on-chain verification without trusting intermediaries.
+          verify root convergence, check the configured source-header commitment, and execute on-chain verification with the active trust model disclosed.
         </p>
       </div>
 
       {/* Input Form Card */}
-      <div className="bg-[#111317] border border-[#21252d] rounded-xl p-5 shadow-sm space-y-4 font-mono text-xs">
+      <div className="bg-[#111317] border border-[#21252d] rounded-xl p-5 shadow-sm space-y-4 text-xs">
         <form onSubmit={handleVerify} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Origin Chain */}
@@ -274,10 +305,10 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
                 className="w-full bg-[#0c0e12] border border-zinc-700/80 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-cyan-500"
               >
                 {chains
-                  .filter((c) => c.isSource)
+                  .filter((c) => c.isSource && c.sourceBridgeAddress)
                   .map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} &bull; ID: {c.id} (Local Devnet)
+                      {c.name} &bull; ID: {c.id} ({c.id === 31337 || c.id === 31338 ? 'Local Devnet' : 'Configured network'})
                     </option>
                   ))}
               </select>
@@ -294,10 +325,10 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
                 className="w-full bg-[#0c0e12] border border-zinc-700/80 rounded-lg px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-cyan-500"
               >
                 {chains
-                  .filter((c) => c.isDestination)
+                  .filter((c) => c.isDestination && c.destinationVerifierAddress)
                   .map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} &bull; ID: {c.id} (Destination Verifier)
+                      {c.name} &bull; ID: {c.id} ({c.destinationVerifierAddress ? 'Destination Verifier' : 'Not configured'})
                     </option>
                   ))}
               </select>
@@ -311,17 +342,24 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
                 Origin Transaction Hash (32-byte Keccak-256):
               </label>
               <div className="flex items-center space-x-2 text-[11px]">
-                <span className="text-zinc-500">Quick Seed:</span>
-                {SAMPLE_HASHES.map((sample, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => handleUseSample(sample.hash)}
-                    className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center space-x-1"
-                  >
-                    <span>{sample.label}</span>
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  onClick={handleGenerateTransaction}
+                  disabled={generating}
+              className="vecna-button-secondary px-3 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold rounded-md transition flex items-center space-x-1.5"
+                >
+                  {generating ? (
+                    <>
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-3 h-3" />
+                      <span>Generate Test TX</span>
+                    </>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -330,13 +368,13 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
                 type="text"
                 value={txHash}
                 onChange={(e) => setTxHash(e.target.value)}
-                placeholder="0x4a821e285a9bc811342657e841fa5cb2e33f381ad79383625f381b0163359d9f"
+                placeholder="0x... paste a mined SourceBridge transaction hash"
                 className="w-full bg-[#0c0e12] border border-zinc-700/80 rounded-lg pl-3 pr-28 py-2.5 text-xs text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-cyan-500 font-mono"
               />
               <button
                 type="submit"
                 disabled={loading || !txHash}
-                className="absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 disabled:hover:bg-cyan-500 text-zinc-950 font-bold text-xs rounded-md transition flex items-center space-x-1.5 shadow-sm"
+                className="vecna-button-primary absolute right-1.5 top-1.5 bottom-1.5 px-4 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 disabled:hover:bg-cyan-500 text-zinc-950 font-bold text-xs rounded-md transition flex items-center space-x-1.5 shadow-sm"
               >
                 {loading ? (
                   <>
@@ -355,6 +393,12 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
         </form>
       </div>
 
+      {successNotice && (
+        <div className="vecna-status-success rounded-lg border px-4 py-3 text-sm" role="status">
+          {successNotice}
+        </div>
+      )}
+
       {/* Success Banner */}
       {finalStatus === 'VERIFIED' && (
         <div className="p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -365,7 +409,7 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
                 Cryptographic Verification Succeeded On-Chain!
               </p>
               <p className="text-xs text-emerald-400/80 font-mono mt-0.5">
-                The DestinationVerifier contract validated the Patricia Trie proof nodes, confirmed header finality, checked replay mappings, and finalized destination state.
+                The DestinationVerifier contract validated the Patricia Trie proof, checked the configured Mode A header commitment, enforced replay protection, and finalized destination state.
               </p>
             </div>
           </div>
@@ -394,6 +438,8 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
             durationMs={durationMs || undefined}
             status={finalStatus}
             messageId={verifiedMessageId || undefined}
+            inclusionVerified={inclusionVerified}
+            trustMode="MODE_A_LOCAL_ORACLE"
           />
         </div>
       </div>

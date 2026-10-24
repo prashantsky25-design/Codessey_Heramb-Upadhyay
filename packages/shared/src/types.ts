@@ -1,5 +1,26 @@
 import { z } from 'zod';
 
+const TRANSACTION_HASH_PATTERN = /^0x[0-9a-fA-F]{64}$/;
+export const INVALID_TRANSACTION_HASH_MESSAGE =
+  'Invalid transaction hash format. Must be a 32-byte hex string (0x followed by 64 hexadecimal characters).';
+
+/**
+ * Normalize hashes pasted from wallets, explorers, or text fields before they
+ * reach the RPC clients. Transaction hashes are case-insensitive, so keeping a
+ * canonical lowercase representation also makes retries and API validation
+ * consistent.
+ */
+export function normalizeTransactionHash(value: string): string {
+  return value.trim().replace(/^0X/, '0x').toLowerCase();
+}
+
+export const TransactionHashSchema = z
+  .string()
+  .transform(normalizeTransactionHash)
+  .refine((value) => TRANSACTION_HASH_PATTERN.test(value), {
+    message: INVALID_TRANSACTION_HASH_MESSAGE
+  });
+
 export interface ChainConfig {
   id: number;
   name: string;
@@ -40,6 +61,8 @@ export interface CrossChainProofData {
   receiptRlp: `0x${string}`;
   mptProof: `0x${string}`[];
   payload: `0x${string}`;
+  messageId?: `0x${string}`;
+  payloadHash?: `0x${string}`;
 }
 
 export interface VerificationRecord {
@@ -83,14 +106,14 @@ export interface TimelineStage {
 // Zod schemas for backend validation
 export const PrepareVerificationSchema = z.object({
   sourceChainId: z.number().int().positive(),
-  txHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/, 'Invalid transaction hash format'),
+  txHash: TransactionHashSchema,
   destinationChainId: z.number().int().positive().optional()
 });
 
 export const VerifyProofSchema = z.object({
   sourceChainId: z.number().int().positive(),
   destinationChainId: z.number().int().positive(),
-  sourceTxHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  sourceTxHash: TransactionHashSchema,
   proof: z.object({
     sourceChainId: z.number().int(),
     sourceContract: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
@@ -100,7 +123,9 @@ export const VerifyProofSchema = z.object({
     txIndex: z.number().int().nonnegative(),
     receiptRlp: z.string().regex(/^0x[0-9a-fA-F]+$/),
     mptProof: z.array(z.string().regex(/^0x[0-9a-fA-F]+$/)),
-    payload: z.string().regex(/^0x[0-9a-fA-F]*$/)
+    payload: z.string().regex(/^0x[0-9a-fA-F]*$/),
+    messageId: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
+    payloadHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()
   }),
   headerProof: z.string().default('0x')
 });
@@ -108,7 +133,7 @@ export const VerifyProofSchema = z.object({
 export const SubmitVerificationSchema = z.object({
   sourceChainId: z.number().int().positive(),
   destinationChainId: z.number().int().positive(),
-  sourceTxHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/),
+  sourceTxHash: TransactionHashSchema,
   proof: z.object({
     sourceChainId: z.number().int(),
     sourceContract: z.string().regex(/^0x[0-9a-fA-F]{40}$/),
@@ -118,7 +143,9 @@ export const SubmitVerificationSchema = z.object({
     txIndex: z.number().int().nonnegative(),
     receiptRlp: z.string().regex(/^0x[0-9a-fA-F]+$/),
     mptProof: z.array(z.string().regex(/^0x[0-9a-fA-F]+$/)),
-    payload: z.string().regex(/^0x[0-9a-fA-F]*$/)
+    payload: z.string().regex(/^0x[0-9a-fA-F]*$/),
+    messageId: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
+    payloadHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()
   }),
   headerProof: z.string().default('0x'),
   simulateTamper: z.enum(['none', 'proof_node', 'payload', 'replay']).optional().default('none')

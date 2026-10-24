@@ -24,15 +24,15 @@ const STAGE_SPECS: Record<string, { summary: string; cryptoGuarantee: string }> 
   },
   receipt_proof_retrieved: {
     summary: 'Constructed Patricia Merkle Trie inclusion proof',
-    cryptoGuarantee: 'EIP-2718 typed receipt RLP encoded; MPT sibling nodes extracted from node'
+    cryptoGuarantee: 'EIP-2718 typed receipt RLP encoded; MPT nodes reconstructed from source-block receipts'
   },
   inclusion_validated: {
     summary: 'Evaluated Patricia Trie cryptographic inclusion',
     cryptoGuarantee: 'keccak256(nodeBytes) recomputed on each branch node to verify convergence to receiptsRoot'
   },
   header_finality_validated: {
-    summary: 'Source block header verified in HeaderVerifier',
-    cryptoGuarantee: 'Ensures receiptsRoot belongs to a finalized, authenticated source header'
+    summary: 'Source header commitment checked in the configured HeaderVerifier',
+    cryptoGuarantee: 'Mode A confirms an authorized oracle commitment; this is not source-chain consensus finality'
   },
   destination_verifier_called: {
     summary: 'Invoked verifyAndExecute() on DestinationVerifier',

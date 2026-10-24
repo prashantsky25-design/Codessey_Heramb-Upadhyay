@@ -17,7 +17,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { runAttack } from '../api';
-import { CrossChainProofData } from '@crossproof/shared';
+import { ActiveVerification } from '../types';
 
 type AttackType = 'tamper' | 'replay' | 'payload' | 'wrong-chain' | 'missing-finality';
 
@@ -92,7 +92,7 @@ const ATTACK_SCENARIOS: AttackMeta[] = [
     shortDesc: 'Replays evidence originating on or destined for a different chain ID.',
     adversaryStrategy:
       'An attacker attempts to use evidence intended for Ethereum Sepolia (11155111) or Arbitrum on this Optimism destination chain (31338) to execute unintended logic.',
-    securityGuarantee: 'EIP-712 Domain Separation & Chain ID Enforcement',
+    securityGuarantee: 'Source-chain configuration & destination chain ID enforcement',
     auditorExplanation:
       'The DestinationVerifier strictly checks message.destinationChainId == block.chainid and verifies that sourceChainId is registered. Cross-network proof replay is blocked on-chain.'
   },
@@ -107,37 +107,33 @@ const ATTACK_SCENARIOS: AttackMeta[] = [
     shortDesc: 'Submits an inclusion proof for an unfinalized or unknown block header.',
     adversaryStrategy:
       'An attacker creates a receipt proof against an orphaned block or an uncommitted reorg header that was never finalized on the source consensus layer.',
-    securityGuarantee: 'Decoupled Light Client Header Finality Verification',
+    securityGuarantee: 'Mode A header commitment presence check',
     auditorExplanation:
-      'Receipt inclusion alone is insufficient. DestinationVerifier queries IHeaderVerifier to confirm that the block header and receiptsRoot have been finalized by consensus before verifying the receipt.'
+      'Receipt inclusion alone is insufficient. In the active Mode A demo, DestinationVerifier checks that the source block header and receiptsRoot were committed by the configured development oracle. This is not consensus finality.'
   }
 ];
 
-export const AttackLabPage: React.FC = () => {
+interface AttackLabPageProps {
+  activeVerification: ActiveVerification | null;
+}
+
+export const AttackLabPage: React.FC<AttackLabPageProps> = ({ activeVerification }) => {
   const [activeAttack, setActiveAttack] = useState<AttackType>('tamper');
   const [executing, setExecuting] = useState(false);
   const [attackResult, setAttackResult] = useState<any>(null);
-
-  // Sample proof data
-  const sampleProof: CrossChainProofData = {
-    sourceChainId: 31337,
-    sourceContract: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512',
-    blockNumber: 3,
-    blockHash: '0x8bb760d32fddc2c347ecfc679a7372101cf4a64fe852c48f290490cb0af63c0f',
-    receiptsRoot: '0x2e6d8f0d7cc9a28de6c38b557b9f7a56b7ea8373bac309de9084fb732a850c9f',
-    txIndex: 0,
-    receiptRlp:
-      '0xf84e0132b901000000000000000000000000000000000000000000000000000000000000000000',
-    mptProof: [
-      '0xf84b2080f8460132b9010000000000000000000000000000000000000000000000000000000000000000'
-    ],
-    payload: '0x43726f737350726f6f663a2044656d6f2053656564205472616e73616374696f6e'
-  };
 
   const currentScenario =
     ATTACK_SCENARIOS.find((a) => a.id === activeAttack) || ATTACK_SCENARIOS[0];
 
   const handleExecuteAttack = async (type: AttackType) => {
+    if (!activeVerification) {
+      setAttackResult({
+        status: 'attack_unavailable',
+        message: 'Run and complete a real verification first. Attack Lab does not use synthetic proof fixtures.'
+      });
+      return;
+    }
+
     setExecuting(true);
     setAttackResult(null);
 
@@ -150,7 +146,11 @@ export const AttackLabPage: React.FC = () => {
     };
 
     try {
-      const res = await runAttack(endpointMap[type], 31338, sampleProof);
+      const res = await runAttack(
+        endpointMap[type],
+        activeVerification.destinationChainId,
+        activeVerification.proof
+      );
       setAttackResult(res);
     } catch (err: any) {
       setAttackResult({
@@ -166,7 +166,7 @@ export const AttackLabPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 vecna-lab-page">
       {/* Page Header */}
       <div>
         <div className="flex items-center space-x-2">
@@ -175,32 +175,55 @@ export const AttackLabPage: React.FC = () => {
             Adversarial Attack & Security Lab
           </h1>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-800/50">
-            5 Live Exploit Vectors
+            5 Attack Scenarios
           </span>
         </div>
         <p className="text-xs text-zinc-400 mt-1">
-          Execute real adversarial transactions against the DestinationVerifier smart contract on local Anvil (Chain 31338).
-          Verify that forged proofs, mutated receipts, substituted payloads, unfinalized headers, and replay attempts
-          are strictly rejected on-chain without backend dependencies.
+          Submit controlled mutations of the latest successfully verified proof through the configured Attack Lab API.
+          Results are shown as contract-backed only when the backend reports an actual verifier rejection.
         </p>
       </div>
 
+      {!activeVerification && (
+        <div className="rounded-xl border border-amber-800/50 bg-amber-950/20 p-4 text-xs text-amber-200 font-mono">
+          <p className="font-semibold text-amber-300">A real proof is required before running attacks.</p>
+          <p className="mt-1 text-amber-200/80">
+            Open Verify Transaction, complete a successful verification, then return here. Synthetic proof fixtures are intentionally disabled.
+          </p>
+        </div>
+      )}
+
+      {activeVerification && (
+        <div className="rounded-xl border border-cyan-800/50 bg-cyan-950/20 p-4 text-xs text-cyan-100 font-mono">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="font-semibold text-cyan-300">Active proof loaded from the latest verification</span>
+            <span className="text-cyan-200/80">
+              Chain {activeVerification.sourceChainId} → {activeVerification.destinationChainId} · block #{activeVerification.proof.blockNumber}
+            </span>
+          </div>
+          <p className="mt-1 text-cyan-200/70 break-all">
+            Message: {activeVerification.messageId || 'message ID unavailable'}
+          </p>
+        </div>
+      )}
+
       {/* 5 Attack Selection Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 font-mono">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         {ATTACK_SCENARIOS.map((scenario) => {
           const isSelected = activeAttack === scenario.id;
           const Icon = scenario.icon;
 
           return (
-            <div
+            <button
+              type="button"
               key={scenario.id}
               onClick={() => {
                 setActiveAttack(scenario.id);
                 setAttackResult(null);
               }}
-              className={`cursor-pointer rounded-xl p-4 border transition-all duration-150 flex flex-col justify-between ${
+              className={`vecna-attack-card text-left cursor-pointer rounded-xl p-4 border transition-all duration-150 flex flex-col justify-between ${
                 isSelected
-                  ? 'bg-[#181318] border-rose-500/60 shadow-lg shadow-rose-950/40 translate-y-[-2px]'
+                  ? 'is-selected bg-[#181318] border-rose-500/60 shadow-lg shadow-rose-950/40 translate-y-[-2px]'
                   : 'bg-[#111317] border-[#21252d] hover:border-zinc-700 hover:bg-[#14161c]'
               }`}
             >
@@ -232,13 +255,13 @@ export const AttackLabPage: React.FC = () => {
                 <span className="text-zinc-500">Selector:</span>
                 <code className="text-rose-400 font-semibold">{scenario.selector}</code>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
 
       {/* Attack Console */}
-      <div className="bg-[#111317] border border-[#21252d] rounded-xl p-6 shadow-xl space-y-4 font-mono text-xs">
+      <div className="vecna-console bg-[#111317] border border-[#21252d] rounded-xl p-6 shadow-xl space-y-4 text-xs">
         {/* Header bar of Console */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-800 pb-3 gap-2">
           <div className="flex items-center space-x-2">
@@ -250,7 +273,7 @@ export const AttackLabPage: React.FC = () => {
           <div className="flex items-center space-x-2 text-[11px] text-zinc-400">
             <span>Target:</span>
             <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 font-semibold">
-              DestinationVerifier (Chain 31338)
+              DestinationVerifier (Chain {activeVerification?.destinationChainId ?? '—'})
             </span>
           </div>
         </div>
@@ -280,7 +303,7 @@ export const AttackLabPage: React.FC = () => {
           <button
             onClick={() => handleExecuteAttack(activeAttack)}
             disabled={executing}
-            className="px-5 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-bold rounded-lg transition-all flex items-center space-x-2 shadow-lg shadow-rose-950/50 text-xs"
+            className="vecna-button-danger px-5 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white font-bold rounded-lg transition-all flex items-center space-x-2 shadow-lg shadow-rose-950/50 text-xs"
           >
             {executing ? (
               <>
@@ -290,23 +313,35 @@ export const AttackLabPage: React.FC = () => {
             ) : (
               <>
                 <Flame className="w-4 h-4" />
-                <span>Execute Adversarial Transaction On-Chain</span>
+                <span>{activeVerification ? 'Run Attack Against Current Proof' : 'Verification Required'}</span>
               </>
             )}
           </button>
 
           <span className="text-[11px] text-zinc-500">
-            Broadcasts call to Anvil RPC http://127.0.0.1:8546
+            Uses the destination verifier configured by the API
           </span>
         </div>
 
         {/* Live Attack Outcome Window */}
         {attackResult && (
           <div className="mt-6 border-t border-zinc-800 pt-5 space-y-4">
+            {attackResult.status === 'attack_unavailable' ? (
+              <div className="rounded-lg border border-amber-800/50 bg-amber-950/20 p-4 text-amber-200">
+                {attackResult.message}
+              </div>
+            ) : (
+              <>
             <div className="flex items-center space-x-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              <h3 className="text-sm font-bold text-emerald-300">
-                Attack Successfully Thwarted & Blocked by Destination Contract!
+              {attackResult.status === 'attack_thwarted' ? (
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              ) : (
+                <ShieldAlert className="w-5 h-5 text-rose-400" />
+              )}
+              <h3 className={`text-sm font-bold ${attackResult.status === 'attack_thwarted' ? 'text-emerald-300' : 'text-rose-300'}`}>
+                {attackResult.status === 'attack_thwarted'
+                  ? 'Attack Rejected by Destination Verifier'
+                  : 'Attack Result Requires Investigation'}
               </h3>
             </div>
 
@@ -317,7 +352,7 @@ export const AttackLabPage: React.FC = () => {
                   {attackResult.revertReason || currentScenario.revertError}
                 </span>
                 <span className="text-[10px] text-emerald-400 mt-1 block">
-                  &bull; Contract state unmodified (State rollback)
+                   &bull; {attackResult.onChainRejection ? 'Verifier rejection reported' : 'No contract-backed rejection reported'}
                 </span>
               </div>
 
@@ -327,7 +362,7 @@ export const AttackLabPage: React.FC = () => {
                   {currentScenario.securityGuarantee}
                 </span>
                 <span className="text-[10px] text-cyan-400 mt-1 block">
-                  &bull; Pure mathematical EVM check (Zero backend trust)
+                   &bull; Result source: {attackResult.onChainRejection ? 'destination verifier response' : 'backend/API response'}
                 </span>
               </div>
             </div>
@@ -339,6 +374,8 @@ export const AttackLabPage: React.FC = () => {
               </div>
               <p>{attackResult.securityExplanation || currentScenario.auditorExplanation}</p>
             </div>
+              </>
+            )}
           </div>
         )}
       </div>

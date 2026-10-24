@@ -6,8 +6,10 @@ import { HistoryPage } from './pages/HistoryPage';
 import { AttackLabPage } from './pages/AttackLabPage';
 import { ArchitecturePage } from './pages/ArchitecturePage';
 import { SecurityPage } from './pages/SecurityPage';
+import { DocumentationPage } from './pages/DocumentationPage';
 import { fetchChains, fetchHealth, fetchVerificationHistory } from './api';
 import { ChainConfig, SUPPORTED_CHAINS, VerificationRecord } from '@crossproof/shared';
+import { ActiveVerification } from './types';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<string>('overview');
@@ -17,6 +19,7 @@ export function App() {
 
   const [verifyTxHash, setVerifyTxHash] = useState<string>('');
   const [verifyChainId, setVerifyChainId] = useState<number>(31337);
+  const [activeVerification, setActiveVerification] = useState<ActiveVerification | null>(null);
 
   const loadData = async () => {
     try {
@@ -50,14 +53,15 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0b0d] text-zinc-100 flex flex-col tech-grid font-sans selection:bg-cyan-500/20 selection:text-cyan-200">
+    <div className="app-root tech-grid font-sans">
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         networkOnline={networkOnline}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="app-main">
+        <div className="app-content max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         {activeTab === 'overview' && (
           <OverviewPage
             chains={chains}
@@ -72,21 +76,29 @@ export function App() {
             chains={chains}
             initialTxHash={verifyTxHash}
             initialChainId={verifyChainId}
-            onVerificationCompleted={loadData}
+            onVerificationCompleted={(verification) => {
+              setActiveVerification(verification);
+              void loadData();
+            }}
           />
         )}
 
         {activeTab === 'history' && <HistoryPage records={records} />}
 
-        {activeTab === 'attack-lab' && <AttackLabPage />}
+        {activeTab === 'attack-lab' && (
+          <AttackLabPage activeVerification={activeVerification} />
+        )}
 
         {activeTab === 'architecture' && <ArchitecturePage />}
 
         {activeTab === 'security' && <SecurityPage />}
+
+        {activeTab === 'documentation' && <DocumentationPage />}
+        </div>
       </main>
 
       {/* Product Footer */}
-      <footer className="border-t border-[#1b1e24] bg-[#0c0d10] py-6 text-xs text-zinc-500 font-mono">
+      <footer className="app-footer font-mono">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-2">
             <span className="font-bold text-zinc-300">CROSSPROOF</span>
@@ -95,8 +107,8 @@ export function App() {
           </div>
 
           <div className="flex items-center space-x-4 text-zinc-400">
-            <button onClick={() => setActiveTab('architecture')} className="hover:text-cyan-400">
-              Protocol Docs
+            <button onClick={() => setActiveTab('documentation')} className="hover:text-cyan-400">
+              Documentation
             </button>
             <button onClick={() => setActiveTab('security')} className="hover:text-cyan-400">
               Trust Assumptions

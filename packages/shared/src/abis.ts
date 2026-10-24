@@ -137,6 +137,13 @@ export const DestinationVerifierAbi = [
       { name: 'sourceBridge', type: 'address' }
     ],
     outputs: []
+  },
+  {
+    type: 'function',
+    name: 'headerVerifier',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }]
   }
 ] as const;
 
@@ -187,6 +194,13 @@ export const DevHeaderOracleAbi = [
 ] as const;
 
 export const CrossProofReceiverAbi = [
+  {
+    type: 'function',
+    name: 'expectedVerifier',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'address' }]
+  },
   {
     type: 'event',
     name: 'ApplicationActionExecuted',

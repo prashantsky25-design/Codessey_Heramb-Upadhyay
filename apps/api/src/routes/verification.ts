@@ -13,9 +13,184 @@ import { chainService } from '../services/chainService';
 import { verificationStore } from '../services/verificationStore';
 import {
   DestinationVerifierAbi,
-  DevHeaderOracleAbi
+  DevHeaderOracleAbi,
+  CrossProofReceiverAbi
 } from '@crossproof/shared';
 import { Hash, Hex } from 'viem';
+
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Hex;
+
+function errorMessage(error: unknown): string {
+  if (error && typeof error === 'object' && 'shortMessage' in error) {
+    return String((error as { shortMessage?: unknown }).shortMessage);
+  }
+  if (error instanceof Error) return error.message;
+  return String(error);
+}
+
+/**
+ * Resolves the destination verifier and its configured header verifier from
+ * on-chain relationships. This prevents stale deployment-address config from
+ * sending header checks to an unrelated contract address.
+ */
+async function resolveDestinationContracts(
+  destinationChainId: number,
+  destinationReceiver?: Hex
+) {
+  const destPublic = chainService.getPublicClient(destinationChainId);
+  const configured = chainService.getChainConfig(destinationChainId);
+
+  let destinationVerifier = configured.destinationVerifierAddress;
+
+  if (destinationReceiver) {
+    try {
+      const receiverVerifier = (await destPublic.readContract({
+        address: destinationReceiver,
+        abi: CrossProofReceiverAbi,
+        functionName: 'expectedVerifier'
+      })) as Hex;
+
+      if (receiverVerifier !== ZERO_ADDRESS) {
+        destinationVerifier = receiverVerifier;
+      }
+    } catch {
+      // Some receiver implementations may not expose expectedVerifier().
+      // Fall back to the configured verifier for those deployments.
+    }
+  }
+
+  if (!destinationVerifier) {
+    throw new Error(`Destination verifier is not configured for chain ${destinationChainId}`);
+  }
+
+  let headerVerifier = configured.headerOracleAddress;
+  try {
+    const resolvedHeaderVerifier = (await destPublic.readContract({
+      address: destinationVerifier,
+      abi: DestinationVerifierAbi,
+      functionName: 'headerVerifier'
+    })) as Hex;
+
+    if (resolvedHeaderVerifier !== ZERO_ADDRESS) {
+      headerVerifier = resolvedHeaderVerifier;
+    }
+  } catch {
+    // Keep the configured value so the caller can report a useful failure if
+    // the deployment does not expose the coordinator getter.
+  }
+
+  if (!headerVerifier) {
+    throw new Error(`Header verifier is not configured for chain ${destinationChainId}`);
+  }
+
+  chainService.updateChainAddresses(destinationChainId, {
+    destinationVerifierAddress: destinationVerifier,
+    headerOracleAddress: headerVerifier,
+    receiverAddress: destinationReceiver || configured.receiverAddress
+  });
+
+  return {
+    destinationVerifier,
+    headerVerifier,
+    destPublic,
+    destConfig: chainService.getChainConfig(destinationChainId)
+  };
+}
+
+async function ensureSourceHeaderCommitted({
+  destinationChainId,
+  sourceChainId,
+  blockNumber,
+  blockHash,
+  receiptsRoot,
+  headerVerifier,
+  destPublic
+}: {
+  destinationChainId: number;
+  sourceChainId: number;
+  blockNumber: number;
+  blockHash: Hex;
+  receiptsRoot: Hex;
+  headerVerifier: Hex;
+  destPublic: ReturnType<typeof chainService.getPublicClient>;
+}) {
+  const args = [
+    BigInt(sourceChainId),
+    BigInt(blockNumber),
+    blockHash,
+    receiptsRoot,
+    '0x'
+  ] as const;
+
+  let isCommitted = false;
+  try {
+    isCommitted = (await destPublic.readContract({
+      address: headerVerifier,
+      abi: DevHeaderOracleAbi,
+      functionName: 'verifySourceHeader',
+      args
+    })) as boolean;
+  } catch {
+    // Missing or mismatched headers are expected before the commit step.
+  }
+
+  if (!isCommitted) {
+    let commitTx: Hex;
+    try {
+      const destWallet = chainService.getWalletClient(destinationChainId);
+      commitTx = await (destWallet as any).writeContract({
+        address: headerVerifier,
+        abi: DevHeaderOracleAbi,
+        functionName: 'commitSourceHeader',
+        args: [
+          BigInt(sourceChainId),
+          BigInt(blockNumber),
+          blockHash,
+          receiptsRoot
+        ]
+      });
+    } catch (error) {
+      throw new Error(
+        `Source header commit failed at ${headerVerifier}: ${errorMessage(error)}`
+      );
+    }
+
+    const commitReceipt = await destPublic.waitForTransactionReceipt({
+      hash: commitTx,
+      timeout: 25_000
+    });
+
+    if (commitReceipt.status !== 'success') {
+      throw new Error(
+        `Source header commit transaction reverted on destination chain: ${commitTx}`
+      );
+    }
+
+    try {
+      isCommitted = (await destPublic.readContract({
+        address: headerVerifier,
+        abi: DevHeaderOracleAbi,
+        functionName: 'verifySourceHeader',
+        args
+      })) as boolean;
+    } catch (error) {
+      throw new Error(
+        `Source header commit was mined but could not be verified at ${headerVerifier}: ${errorMessage(error)}`
+      );
+    }
+  }
+
+  if (!isCommitted) {
+    throw new Error(
+      `Source header was not authenticated after commit on destination chain ${destinationChainId}`
+    );
+  }
+
+  return {
+    committed: true,
+    details: `Header commitment verified at ${headerVerifier}`
+  };
+}
 
 export const verificationRoutes: FastifyPluginAsync = async (server) => {
   /**
@@ -46,45 +221,23 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
       const targetDestChainId =
         destinationChainId || proofResult.extractedEvent.destinationChainId;
 
-      // Auto-commit source header to DevHeaderOracle if local mode
-      const destConfig = chainService.getChainConfig(targetDestChainId);
-      if (destConfig.headerOracleAddress) {
-        try {
-          const destWallet = chainService.getWalletClient(targetDestChainId);
-          const destPublic = chainService.getPublicClient(targetDestChainId);
+      chainService.updateChainAddresses(sourceChainId, {
+        sourceBridgeAddress: proofResult.extractedEvent.sourceContract
+      });
 
-          // Check if already committed
-          const isVerified = (await destPublic.readContract({
-            address: destConfig.headerOracleAddress,
-            abi: DevHeaderOracleAbi,
-            functionName: 'verifySourceHeader',
-            args: [
-              BigInt(sourceChainId),
-              BigInt(proofResult.proof.blockNumber),
-              proofResult.proof.blockHash,
-              proofResult.proof.receiptsRoot,
-              '0x'
-            ]
-          }).catch(() => false)) as boolean;
-
-          if (!isVerified) {
-            const commitTx = await (destWallet as any).writeContract({
-              address: destConfig.headerOracleAddress,
-              abi: DevHeaderOracleAbi,
-              functionName: 'commitSourceHeader',
-              args: [
-                BigInt(sourceChainId),
-                BigInt(proofResult.proof.blockNumber),
-                proofResult.proof.blockHash,
-                proofResult.proof.receiptsRoot
-              ]
-            });
-            await destPublic.waitForTransactionReceipt({ hash: commitTx });
-          }
-        } catch (oracleErr) {
-          console.warn('Notice: Header oracle commit skipped or failed:', oracleErr);
-        }
-      }
+      const resolved = await resolveDestinationContracts(
+        targetDestChainId,
+        proofResult.extractedEvent.destinationReceiver
+      );
+      const headerResult = await ensureSourceHeaderCommitted({
+        destinationChainId: targetDestChainId,
+        sourceChainId,
+        blockNumber: proofResult.proof.blockNumber,
+        blockHash: proofResult.proof.blockHash as Hex,
+        receiptsRoot: proofResult.proof.receiptsRoot as Hex,
+        headerVerifier: resolved.headerVerifier,
+        destPublic: resolved.destPublic
+      });
 
       const verificationId = `v-${Date.now()}-${proofResult.extractedEvent.nonce}`;
 
@@ -120,7 +273,7 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
             id: 'header_finality_validated',
             label: 'Source Header Authenticity Validated',
             status: 'completed',
-            details: 'Committed to Header Verifier'
+            details: headerResult.details
           },
           {
             id: 'destination_verifier_called',
@@ -168,28 +321,26 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
         proof.mptProof as Hex[]
       );
 
-      // 2. Check destination verifier state
-      const destConfig = chainService.getChainConfig(parse.data.destinationChainId);
+      // 2. Check the header verifier wired into the destination coordinator.
+      // This avoids stale standalone headerOracleAddress configuration.
+      const resolved = await resolveDestinationContracts(parse.data.destinationChainId);
       let isHeaderCommitted = false;
 
-      if (destConfig.headerOracleAddress) {
-        const destPublic = chainService.getPublicClient(parse.data.destinationChainId);
-        try {
-          isHeaderCommitted = (await destPublic.readContract({
-            address: destConfig.headerOracleAddress,
-            abi: DevHeaderOracleAbi,
-            functionName: 'verifySourceHeader',
-            args: [
-              BigInt(proof.sourceChainId),
-              BigInt(proof.blockNumber),
-              proof.blockHash as Hex,
-              proof.receiptsRoot as Hex,
-              '0x'
-            ]
-          })) as boolean;
-        } catch {
-          isHeaderCommitted = false;
-        }
+      try {
+        isHeaderCommitted = (await resolved.destPublic.readContract({
+          address: resolved.headerVerifier,
+          abi: DevHeaderOracleAbi,
+          functionName: 'verifySourceHeader',
+          args: [
+            BigInt(proof.sourceChainId),
+            BigInt(proof.blockNumber),
+            proof.blockHash as Hex,
+            proof.receiptsRoot as Hex,
+            '0x'
+          ]
+        })) as boolean;
+      } catch {
+        isHeaderCommitted = false;
       }
 
       const allValid = isMptValid && isHeaderCommitted;
@@ -237,17 +388,10 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
       proof.payload = '0xdeadbeefbadf00d';
     }
 
-    const destConfig = chainService.getChainConfig(destinationChainId);
-    if (!destConfig.destinationVerifierAddress) {
-      return reply.status(400).send({
-        status: 'error',
-        code: 'NO_VERIFIER_CONFIGURED',
-        message: `Destination verifier not configured for chain ${destinationChainId}`
-      });
-    }
-
+    const resolved = await resolveDestinationContracts(destinationChainId);
+    const destConfig = resolved.destConfig;
     const destWallet = chainService.getWalletClient(destinationChainId);
-    const destPublic = chainService.getPublicClient(destinationChainId);
+    const destPublic = resolved.destPublic;
 
     const formattedProof = {
       sourceChainId: BigInt(proof.sourceChainId),
@@ -266,7 +410,7 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
     try {
       // Execute verifyAndExecute on destination verifier
       const txHash = await (destWallet as any).writeContract({
-        address: destConfig.destinationVerifierAddress,
+        address: resolved.destinationVerifier,
         abi: DestinationVerifierAbi,
         functionName: 'verifyAndExecute',
         args: [formattedProof, '0x']
@@ -280,7 +424,7 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
       // Query messageId from verifier record or logs
       const record: VerificationRecord = {
         verificationId,
-        messageId: '0x' as Hex, // Will fill from logs or event
+        messageId: (proof.messageId || '0x') as Hex,
         sourceChainId,
         sourceContract: proof.sourceContract as Hex,
         destinationChainId,
@@ -290,7 +434,7 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
         blockNumber: proof.blockNumber,
         txIndex: proof.txIndex,
         payload: proof.payload as Hex,
-        payloadHash: '0x' as Hex,
+        payloadHash: (proof.payloadHash || '0x') as Hex,
         verifiedAt: Math.floor(Date.now() / 1000),
         gasUsed: receipt.gasUsed.toString(),
         status: receipt.status === 'success' ? 'VERIFIED' : 'REJECTED',
@@ -322,7 +466,7 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
       // Revert caught
       const record: VerificationRecord = {
         verificationId,
-        messageId: '0x0000000000000000000000000000000000000000000000000000000000000000',
+        messageId: (proof.messageId || '0x0000000000000000000000000000000000000000000000000000000000000000') as Hex,
         sourceChainId,
         sourceContract: proof.sourceContract as Hex,
         destinationChainId,
@@ -331,7 +475,7 @@ export const verificationRoutes: FastifyPluginAsync = async (server) => {
         blockNumber: proof.blockNumber,
         txIndex: proof.txIndex,
         payload: proof.payload as Hex,
-        payloadHash: '0x' as Hex,
+        payloadHash: (proof.payloadHash || '0x') as Hex,
         verifiedAt: Math.floor(Date.now() / 1000),
         status: 'REJECTED',
         rejectionReason: err?.shortMessage || err?.message || 'On-chain execution reverted',

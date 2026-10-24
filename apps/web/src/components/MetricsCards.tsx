@@ -12,20 +12,20 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ records = [], isLoad
   const rejected = records.filter((r) => r.status === 'REJECTED').length;
 
   const validGasRecords = records.filter((r) => r.gasUsed && Number(r.gasUsed) > 0);
-  const avgGas =
+  const avgGas: number | null =
     validGasRecords.length > 0
       ? Math.round(
           validGasRecords.reduce((acc, r) => acc + Number(r.gasUsed), 0) / validGasRecords.length
         )
-      : 241830;
+      : null;
 
   const validTimeRecords = records.filter((r) => r.proofTimeMs && r.proofTimeMs > 0);
-  const avgProofTime =
+  const avgProofTime: number | null =
     validTimeRecords.length > 0
       ? Math.round(
           validTimeRecords.reduce((acc, r) => acc + Number(r.proofTimeMs), 0) / validTimeRecords.length
         )
-      : 42;
+      : null;
 
   if (isLoading) {
     return (
@@ -45,7 +45,7 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ records = [], isLoad
   }
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 font-mono">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {/* 1. Verified Messages */}
       <div className="bg-[#111317] border border-[#21252d] rounded-xl p-4 shadow-sm hover:border-zinc-700 transition">
         <div className="flex items-center justify-between text-zinc-400 mb-2 text-xs">
@@ -54,7 +54,7 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ records = [], isLoad
         </div>
         <div className="flex items-baseline space-x-2">
           <span className="text-2xl font-bold text-zinc-100 tracking-tight">
-            {verified > 0 ? verified : 1}
+            {verified}
           </span>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
             ON-CHAIN
@@ -69,20 +69,20 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ records = [], isLoad
       {/* 2. Attack Attempts Blocked */}
       <div className="bg-[#111317] border border-[#21252d] rounded-xl p-4 shadow-sm hover:border-zinc-700 transition">
         <div className="flex items-center justify-between text-zinc-400 mb-2 text-xs">
-          <span className="font-semibold text-zinc-300">Attacks Blocked</span>
+          <span className="font-semibold text-zinc-300">Rejected Attempts</span>
           <ShieldAlert className="w-4 h-4 text-rose-400" />
         </div>
         <div className="flex items-baseline space-x-2">
           <span className="text-2xl font-bold text-zinc-100 tracking-tight">
-            {rejected > 0 ? rejected : 3}
+            {rejected}
           </span>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/60 text-rose-400 border border-rose-800/40">
-            FAILED CLOSED
+            RECORDED
           </span>
         </div>
         <div className="mt-2 flex items-center justify-between text-[10px] text-zinc-500">
-          <span>Replays & tampered nodes</span>
-          <span className="text-rose-400/80">100% Reverted</span>
+          <span>API records with rejected status</span>
+          <span className="text-rose-400/80">Not attack count</span>
         </div>
       </div>
 
@@ -94,9 +94,9 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ records = [], isLoad
         </div>
         <div className="flex items-baseline space-x-2">
           <span className="text-2xl font-bold text-zinc-100 tracking-tight">
-            {avgProofTime}
+            {avgProofTime ?? '—'}
           </span>
-          <span className="text-xs text-cyan-400 font-semibold">ms</span>
+          <span className="text-xs text-cyan-400 font-semibold">{avgProofTime !== null ? 'ms' : ''}</span>
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-800/40 ml-auto">
             BENCHMARK
           </span>
@@ -115,9 +115,9 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({ records = [], isLoad
         </div>
         <div className="flex items-baseline space-x-2">
           <span className="text-2xl font-bold text-zinc-100 tracking-tight">
-            {avgGas.toLocaleString()}
+            {avgGas !== null ? avgGas.toLocaleString() : '—'}
           </span>
-          <span className="text-xs text-amber-400 font-semibold">gas</span>
+          <span className="text-xs text-amber-400 font-semibold">{avgGas !== null ? 'gas' : ''}</span>
         </div>
         <div className="mt-2 flex items-center justify-between text-[10px] text-zinc-500">
           <span>Full EVM MPT verification</span>

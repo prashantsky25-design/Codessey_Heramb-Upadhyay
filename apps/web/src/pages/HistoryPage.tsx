@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   History,
   Search,
@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { VerificationRecord } from '@crossproof/shared';
 import { StatusBadge } from '../components/StatusBadge';
-import { ProofInspector } from '../components/ProofInspector';
 
 interface HistoryPageProps {
   records: VerificationRecord[];
@@ -24,6 +23,15 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'VERIFIED' | 'REJECTED'>('ALL');
   const [chainFilter, setChainFilter] = useState<string>('ALL');
   const [selectedRecord, setSelectedRecord] = useState<VerificationRecord | null>(null);
+
+  useEffect(() => {
+    if (!selectedRecord) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSelectedRecord(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedRecord]);
 
   const filteredRecords = records.filter((r) => {
     const matchesStatus =
@@ -51,16 +59,16 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
             Verification Provenance Ledger
           </h1>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-800/50">
-            Immutable Audit Trail
+            Session Audit Log
           </span>
         </div>
         <p className="text-xs text-zinc-400 mt-1">
-          Complete historical ledger of all cross-chain proofs verified or rejected on the destination blockchain.
+          In-memory verification records from the current API session. On-chain evidence remains authoritative.
         </p>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-[#111317] border border-[#21252d] rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 font-mono text-xs">
+      <div className="bg-[#111317] border border-[#21252d] rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
         {/* Search */}
         <div className="relative w-full md:w-80">
           <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
@@ -109,7 +117,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
       {/* History Table */}
       <div className="bg-[#111317] border border-[#21252d] rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs">
+          <table className="w-full text-left text-xs">
             <thead>
               <tr className="bg-[#0e1014] border-b border-zinc-800 text-zinc-400 text-[11px]">
                 <th className="py-3 px-4">Verification ID</th>
@@ -174,12 +182,12 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
 
       {/* Record Slide-over / Modal Drawer */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#111317] border border-[#21252d] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedRecord(null); }}>
+          <div className="bg-[#111317] border border-[#21252d] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="verification-detail-title">
             <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center space-x-2">
                 <Database className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-base font-bold font-mono text-zinc-100">
+                <h3 id="verification-detail-title" className="text-base font-bold font-mono text-zinc-100">
                   Verification Detail: {selectedRecord.verificationId}
                 </h3>
               </div>
@@ -191,25 +199,46 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ records }) => {
               </button>
             </div>
 
-            <ProofInspector
-              verificationId={selectedRecord.verificationId}
-              messageId={selectedRecord.messageId}
-              destinationTxHash={selectedRecord.destinationTxHash}
-              gasUsed={selectedRecord.gasUsed}
-              durationMs={selectedRecord.proofTimeMs}
-              status={selectedRecord.status}
-              proof={{
-                sourceChainId: selectedRecord.sourceChainId,
-                sourceContract: selectedRecord.sourceContract,
-                blockNumber: selectedRecord.blockNumber,
-                blockHash: selectedRecord.sourceTxHash,
-                receiptsRoot: selectedRecord.payloadHash,
-                txIndex: selectedRecord.txIndex,
-                receiptRlp: '0xf84e0132b90100...',
-                mptProof: ['0xf84b2080f84601...'],
-                payload: selectedRecord.payload
-              }}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-lg border border-[#1b1f26] bg-[#0c0e12]">
+                <span className="text-zinc-500 block mb-1">Status</span>
+                <StatusBadge status={selectedRecord.status} size="sm" />
+              </div>
+              <div className="p-3 rounded-lg border border-[#1b1f26] bg-[#0c0e12]">
+                <span className="text-zinc-500 block mb-1">Trust mode</span>
+                <span className="text-amber-300">{selectedRecord.trustMode}</span>
+              </div>
+              <div className="p-3 rounded-lg border border-[#1b1f26] bg-[#0c0e12] md:col-span-2">
+                <span className="text-zinc-500 block mb-1">Source transaction</span>
+                <code className="text-cyan-300 break-all">{selectedRecord.sourceTxHash}</code>
+              </div>
+              <div className="p-3 rounded-lg border border-[#1b1f26] bg-[#0c0e12] md:col-span-2">
+                <span className="text-zinc-500 block mb-1">Destination transaction</span>
+                <code className="text-emerald-300 break-all">
+                  {selectedRecord.destinationTxHash || 'Not available'}
+                </code>
+              </div>
+              <div className="p-3 rounded-lg border border-[#1b1f26] bg-[#0c0e12]">
+                <span className="text-zinc-500 block mb-1">Message ID</span>
+                <code className="text-cyan-300 break-all">{selectedRecord.messageId}</code>
+              </div>
+              <div className="p-3 rounded-lg border border-[#1b1f26] bg-[#0c0e12]">
+                <span className="text-zinc-500 block mb-1">Payload hash</span>
+                <code className="text-cyan-300 break-all">{selectedRecord.payloadHash}</code>
+              </div>
+              {selectedRecord.rejectionReason && (
+                <div className="p-3 rounded-lg border border-rose-800/50 bg-rose-950/20 md:col-span-2">
+                  <span className="text-rose-400 block mb-1">Rejection reason</span>
+                  <span className="text-rose-200 break-words">{selectedRecord.rejectionReason}</span>
+                </div>
+              )}
+              <div className="p-3 rounded-lg border border-amber-800/50 bg-amber-950/20 md:col-span-2">
+                <span className="text-amber-300 font-semibold">Raw proof bytes are not persisted by the current API.</span>
+                <p className="text-amber-200/70 mt-1">
+                  This view intentionally shows metadata only instead of fabricating receipt or MPT proof values.
+                </p>
+              </div>
+            </div>
 
             <div className="flex justify-end pt-2">
               <button

@@ -43,42 +43,43 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     );
   });
 
+  const sourceChain =
+    chains.find((chain) => chain.id === 31337) || chains.find((chain) => chain.isSource);
+  const destinationChain =
+    chains.find((chain) => chain.id === 31338) || chains.find((chain) => chain.isDestination);
+  const chainLabel = (chainId: number) =>
+    chains.find((chain) => chain.id === chainId)?.shortName || `Chain ${chainId}`;
+
   return (
     <div className="space-y-6">
       {/* 1. ASYMMETRIC SPLIT HERO SECTION */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Left Side: Brand positioning, Core message, CTAs */}
-        <div className="lg:col-span-7 bg-[#111317] border border-[#21252d] rounded-2xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="lg:col-span-7 bg-[#111317] border border-[#21252d] rounded-2xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden vecna-texture">
+          <div className="absolute right-0 top-0 w-80 h-80 rounded-full blur-3xl pointer-events-none opacity-0" />
 
           <div className="space-y-4">
             <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-800/50 text-cyan-300 text-xs font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span>Decentralized Cross-Chain Transaction Verification</span>
+              <span>CrossProof · Cross-Chain Verification</span>
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-extrabold text-zinc-100 tracking-tight leading-tight">
-              Trust the proof. <br />
-              <span className="text-cyan-400 font-mono">Not the messenger.</span>
+              Don't trust the relay.<br />
+              <span className="text-cyan-400 font-mono">Verify the proof.</span>
             </h1>
 
             <p className="text-sm text-zinc-400 leading-relaxed max-w-xl">
-              CrossProof is a modular interoperability protocol that enables destination smart contracts
-              to cryptographically verify Ethereum-compatible transaction inclusion and light-client
-              consensus proofs. Never rely on an untrusted relayer or backend assertion when mathematics can prove it.
+              CrossProof lets destination contracts verify that a transaction actually happened on another chain — no trusted relayer, no multisig, no backend shortcut. Just a Patricia Trie proof checked on-chain.
             </p>
 
             {/* Feature telemetry pills */}
-            <div className="flex flex-wrap gap-2 pt-1 font-mono text-[11px]">
-              <span className="px-2.5 py-1 rounded bg-[#171a21] border border-zinc-800 text-zinc-300">
-                &bull; EVM Patricia Merkle Trie
-              </span>
-              <span className="px-2.5 py-1 rounded bg-[#171a21] border border-zinc-800 text-zinc-300">
-                &bull; Fail-Closed Replay Lock
-              </span>
-              <span className="px-2.5 py-1 rounded bg-[#171a21] border border-zinc-800 text-zinc-300">
-                &bull; Zero Relayer Trust
-              </span>
+            <div className="flex flex-wrap gap-2 pt-1 font-mono text-[13px]">
+              {['Patricia Trie on-chain', 'Replay-proof by default', 'No trusted relayer'].map((label) => (
+                <span key={label} className="technical-badge">
+                  &bull; {label}
+                </span>
+              ))}
             </div>
           </div>
 
@@ -86,7 +87,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <button
               onClick={() => onNavigate('verify')}
-              className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-bold text-xs font-mono rounded-lg transition-all flex items-center space-x-2 shadow-lg shadow-cyan-950/50"
+              className="vecna-button-primary px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-bold text-xs font-mono rounded-lg transition-all flex items-center space-x-2 shadow-lg shadow-cyan-950/50"
             >
               <span>Verify a Transaction</span>
               <ArrowRight className="w-4 h-4" />
@@ -94,7 +95,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
 
             <button
               onClick={() => onNavigate('attack-lab')}
-              className="px-4 py-2.5 bg-[#171b22] hover:bg-[#1f242e] text-zinc-200 border border-zinc-700/80 font-mono text-xs rounded-lg transition-all flex items-center space-x-2"
+              className="vecna-button-secondary px-4 py-2.5 bg-[#171b22] hover:bg-[#1f242e] text-zinc-200 border border-zinc-700/80 font-mono text-xs rounded-lg transition-all flex items-center space-x-2"
             >
               <Terminal className="w-3.5 h-3.5 text-rose-400" />
               <span>Explore Proof Lab</span>
@@ -102,7 +103,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
 
             <button
               onClick={() => onNavigate('architecture')}
-              className="px-4 py-2.5 bg-transparent hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 font-mono text-xs rounded-lg transition flex items-center space-x-1"
+              className="vecna-button-secondary px-4 py-2.5 bg-transparent hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 font-mono text-xs rounded-lg transition flex items-center space-x-1"
             >
               <span>Protocol Specs &rarr;</span>
             </button>
@@ -128,12 +129,12 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-zinc-800/80 gap-2">
             <div className="flex items-center space-x-2">
               <Activity className="w-4 h-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-zinc-100 font-mono">
+              <h2 className="text-sm font-semibold text-zinc-100">
                 Recent On-Chain Verifications
               </h2>
             </div>
 
-            <div className="flex items-center space-x-3 text-xs font-mono">
+            <div className="flex items-center space-x-3 text-xs">
               <button
                 onClick={() => onNavigate('history')}
                 className="text-cyan-400 hover:text-cyan-300 hover:underline flex items-center space-x-1"
@@ -145,7 +146,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left font-mono text-xs">
+            <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-zinc-800/60 text-zinc-400 text-[11px]">
                   <th className="pb-2">Verification ID</th>
@@ -163,9 +164,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                       <span className="text-[10px] text-zinc-400">{rec.sourceTxHash.slice(0, 14)}...</span>
                     </td>
                     <td className="py-2.5 text-zinc-300">
-                      <span className="text-cyan-400">ETH ({rec.sourceChainId})</span>
+                      <span className="text-cyan-400">{chainLabel(rec.sourceChainId)}</span>
                       <span className="text-zinc-500 mx-1">&rarr;</span>
-                      <span className="text-emerald-400">OP ({rec.destinationChainId})</span>
+                      <span className="text-emerald-400">{chainLabel(rec.destinationChainId)}</span>
                     </td>
                     <td className="py-2.5 text-zinc-300">
                       #{rec.blockNumber} <span className="text-zinc-500">(tx #{rec.txIndex})</span>
@@ -189,7 +190,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
         </div>
 
         {/* Network Protocol State (4 cols) */}
-        <div className="lg:col-span-4 bg-[#111317] border border-[#21252d] rounded-xl p-5 shadow-sm space-y-4 font-mono text-xs">
+        <div className="lg:col-span-4 bg-[#111317] border border-[#21252d] rounded-xl p-5 shadow-sm space-y-4 text-xs">
           <div className="flex items-center space-x-2 border-b border-zinc-800/80 pb-3">
             <Cpu className="w-4 h-4 text-cyan-400" />
             <h2 className="text-sm font-semibold text-zinc-100">
@@ -201,28 +202,32 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             {/* Origin Chain */}
             <div className="p-3 rounded-lg bg-[#0e1014] border border-[#1d2129]">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-zinc-200 font-semibold">Origin Chain: Ethereum Local</span>
+                <span className="text-zinc-200 font-semibold">
+                  Origin Chain: {sourceChain?.name || 'Not configured'}
+                </span>
                 <span className="px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 text-[10px] border border-cyan-800/50">
-                  ID: 31337
+                  ID: {sourceChain?.id || '—'}
                 </span>
               </div>
-              <div className="text-[11px] text-zinc-400 font-mono">RPC: http://127.0.0.1:8545</div>
+              <div className="text-[11px] text-zinc-400 font-mono">RPC: {sourceChain?.rpcUrl || 'Not configured'}</div>
               <div className="text-[10px] text-zinc-400 mt-1 truncate">
-                Bridge: 0xe7f1725e7734ce288f8367e1bb143e90bb3f0512
+                Bridge: {sourceChain?.sourceBridgeAddress || 'Not configured'}
               </div>
             </div>
 
             {/* Destination Chain */}
             <div className="p-3 rounded-lg bg-[#0e1014] border border-[#1d2129]">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-zinc-200 font-semibold">Destination: Optimism Local</span>
+                <span className="text-zinc-200 font-semibold">
+                  Destination: {destinationChain?.name || 'Not configured'}
+                </span>
                 <span className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 text-[10px] border border-emerald-800/50">
-                  ID: 31338
+                  ID: {destinationChain?.id || '—'}
                 </span>
               </div>
-              <div className="text-[11px] text-zinc-400 font-mono">RPC: http://127.0.0.1:8546</div>
+              <div className="text-[11px] text-zinc-400 font-mono">RPC: {destinationChain?.rpcUrl || 'Not configured'}</div>
               <div className="text-[10px] text-zinc-400 mt-1 truncate">
-                Verifier: 0xa513e6e4b8f2a923d98304ec87f64353c4d5c853
+                Verifier: {destinationChain?.destinationVerifierAddress || 'Not configured'}
               </div>
             </div>
 

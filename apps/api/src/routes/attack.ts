@@ -15,7 +15,9 @@ const AttackParamsSchema = z.object({
     txIndex: z.number().int().nonnegative(),
     receiptRlp: z.string().regex(/^0x[0-9a-fA-F]+$/),
     mptProof: z.array(z.string().regex(/^0x[0-9a-fA-F]+$/)),
-    payload: z.string().regex(/^0x[0-9a-fA-F]*$/)
+    payload: z.string().regex(/^0x[0-9a-fA-F]*$/),
+    messageId: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional(),
+    payloadHash: z.string().regex(/^0x[0-9a-fA-F]{64}$/).optional()
   })
 });
 
