@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: crossproof-api
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: node apps/api/dist/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: SOURCE_CHAIN_RPC
+        value: https://rpc.sepolia.org
+      - key: DEST_CHAIN_RPC
+        value: https://sepolia.base.org
+      - key: SOURCE_BRIDGE_ADDRESS
+        value: 0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9
+      - key: DEST_VERIFIER_ADDRESS
+        value: 0x9a676e781a523b5d0c0e43731313a708cb607508
+      - key: HEADER_ORACLE_ADDRESS
+        value: 0xa51c1fc2f0d1a1b8494ed1fe312d7c3a78ed91c0
+      - key: RECEIVER_ADDRESS
+        value: 0x0b306bf915c4d645ff596e518faf3f9669b97016
+      - key: RELAYER_PRIVATE_KEY
+        generateValue: true

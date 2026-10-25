@@ -1,6 +1,8 @@
 import { ChainConfig, VerificationRecord, CrossChainProofData } from '@crossproof/shared';
 
-const API_BASE = '/api';
+// Support production cloud hosting where the backend API is hosted on a separate domain (e.g. Render/Railway)
+const apiBaseEnv = (import.meta as any).env?.VITE_API_BASE_URL;
+const API_BASE = apiBaseEnv ? `${apiBaseEnv.replace(/\/$/, '')}/api` : '/api';
 
 export async function fetchHealth() {
   const res = await fetch(`${API_BASE}/health`);
