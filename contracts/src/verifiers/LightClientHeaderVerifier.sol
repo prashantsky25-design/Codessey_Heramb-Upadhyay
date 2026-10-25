@@ -6,9 +6,11 @@ import {RLPReader} from "../libraries/RLPReader.sol";
 
 /**
  * @title LightClientHeaderVerifier
- * @notice Trust-minimized consensus verifier for source execution headers (MODE B).
+ * @notice Transition consensus attestation verifier for source execution headers (MODE B).
  * @dev Validates RLP execution header integrity, cryptographic blockHash derivation,
- * receiptsRoot field extraction, and consensus attestation signatures.
+ * receiptsRoot field extraction, checkpoint boundary check, and designated consensus committee attestation signatures.
+ * Note: Full PoS sync committee verification (BLS12-381 / ZK-SNARK) is not yet integrated; this mode
+ * operates as a transition attestation verifier prototype.
  */
 contract LightClientHeaderVerifier is IHeaderVerifier {
     using RLPReader for bytes;
@@ -18,7 +20,7 @@ contract LightClientHeaderVerifier is IHeaderVerifier {
         bytes32 finalizedHeaderRoot;
         uint256 finalizedSlot;
         uint256 validatorThreshold;
-        address trustedSigner; // or multisig validator committee key
+        address trustedSigner; // Designated committee attestation key
     }
 
     uint256 public immutable sourceChainId;
@@ -29,6 +31,7 @@ contract LightClientHeaderVerifier is IHeaderVerifier {
     error InvalidHeaderRLP();
     error BlockNumberMismatch(uint256 extracted, uint256 expected);
     error ReceiptsRootMismatch(bytes32 extracted, bytes32 expected);
+    error BlockOlderThanFinalizedCheckpoint(uint256 blockNumber, uint256 finalizedSlot);
     error InvalidConsensusProof();
     error Unauthorized();
     error ZeroAddress();
@@ -80,6 +83,9 @@ contract LightClientHeaderVerifier is IHeaderVerifier {
         bytes calldata headerProof
     ) external view override returns (bool) {
         if (_sourceChainId != sourceChainId) revert InvalidConsensusProof();
+        if (blockNumber < checkpoint.finalizedSlot) {
+            revert BlockOlderThanFinalizedCheckpoint(blockNumber, checkpoint.finalizedSlot);
+        }
 
         (bytes memory headerRlp, bytes memory consensusSignature) = abi.decode(
             headerProof,
@@ -154,6 +160,6 @@ contract LightClientHeaderVerifier is IHeaderVerifier {
     }
 
     function getTrustModel() external pure override returns (string memory) {
-        return "MODE_B_LIGHT_CLIENT: Validates header RLP cryptographic hash, extracted receiptsRoot, and consensus committee attestation";
+        return "MODE_B_ATTESTATION_VERIFIER: Execution header RLP verified with receiptsRoot extraction; consensus is authenticated via designated committee signer checkpoint. Full PoS sync committee verification is not yet integrated.";
     }
 }

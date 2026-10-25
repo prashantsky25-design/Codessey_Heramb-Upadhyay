@@ -65,7 +65,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
              </h1>
 
              <p className="max-w-xl text-sm leading-relaxed text-secondary">
-               CrossProof lets destination contracts verify that a transaction actually happened on another chain — no trusted relayer, no multisig, no backend shortcut. Just a Patricia Trie proof checked on-chain.
+               CrossProof lets destination contracts verify cryptographic inclusion of transactions originating on another blockchain via Merkle Patricia Trie proofs and decoupled header verification.
              </p>
 
             {/* Feature telemetry pills */}
@@ -77,7 +77,7 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                  Replay-proof by default
                </span>
                <span className="tag tag-neutral">
-                 No trusted relayer
+                 Untrusted Relayers Allowed
                </span>
             </div>
           </div>

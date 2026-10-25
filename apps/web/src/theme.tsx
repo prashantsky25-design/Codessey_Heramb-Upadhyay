@@ -18,7 +18,7 @@ function getInitialTheme(): ThemeMode {
   const storedTheme = window.localStorage.getItem(STORAGE_KEY);
   if (storedTheme === 'light' || storedTheme === 'vecna') return storedTheme;
 
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'vecna' : 'light';
+  return 'light';
 }
 
 function applyTheme(theme: ThemeMode) {

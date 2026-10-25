@@ -2,7 +2,7 @@ import {
   createPublicClient,
   createWalletClient,
   http,
-  Hex
+  type Hex
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import fs from 'fs';
@@ -67,14 +67,14 @@ export async function deployContracts(
   // 4. Deploy ReceiptVerifier on Chain 31338
   console.log('\n[3/5] Deploying ReceiptVerifier on Chain 31338 (Destination)...');
   const receiptVerifierArtifact = loadArtifact('ReceiptVerifier');
-  const receiptDeployHash = await destWallet.deployContract({
+  const receiptVerifierDeployHash = await destWallet.deployContract({
     abi: receiptVerifierArtifact.abi,
     bytecode: receiptVerifierArtifact.bytecode.object as Hex
   });
-  const receiptReceipt = await destClient.waitForTransactionReceipt({
-    hash: receiptDeployHash
+  const receiptVerifierReceipt = await destClient.waitForTransactionReceipt({
+    hash: receiptVerifierDeployHash
   });
-  const receiptVerifierAddress = receiptReceipt.contractAddress!;
+  const receiptVerifierAddress = receiptVerifierReceipt.contractAddress!;
   console.log('  ReceiptVerifier deployed at:', receiptVerifierAddress);
 
   // 5. Deploy DestinationVerifier on Chain 31338
@@ -93,52 +93,47 @@ export async function deployContracts(
 
   // 6. Deploy CrossProofReceiver on Chain 31338
   console.log('\n[5/5] Deploying CrossProofReceiver application on Chain 31338...');
-  const appReceiverArtifact = loadArtifact('CrossProofReceiver');
-  const appReceiverDeployHash = await destWallet.deployContract({
-    abi: appReceiverArtifact.abi,
-    bytecode: appReceiverArtifact.bytecode.object as Hex,
+  const receiverArtifact = loadArtifact('CrossProofReceiver');
+  const receiverDeployHash = await destWallet.deployContract({
+    abi: receiverArtifact.abi,
+    bytecode: receiverArtifact.bytecode.object as Hex,
     args: [destVerifierAddress]
   });
-  const appReceiverReceipt = await destClient.waitForTransactionReceipt({
-    hash: appReceiverDeployHash
+  const receiverReceipt = await destClient.waitForTransactionReceipt({
+    hash: receiverDeployHash
   });
-  const appReceiverAddress = appReceiverReceipt.contractAddress!;
-  console.log('  CrossProofReceiver deployed at:', appReceiverAddress);
+  const receiverAddress = receiverReceipt.contractAddress!;
+  console.log('  CrossProofReceiver deployed at:', receiverAddress);
 
-  // 7. Configure trusted source bridge in DestinationVerifier
+  // 7. Authorize SourceBridge in DestinationVerifier
   console.log('\n[CONFIG] Authorizing SourceBridge in DestinationVerifier...');
-  const configTx = await destWallet.writeContract({
+  const authTxHash = await destWallet.writeContract({
     address: destVerifierAddress,
     abi: destVerifierArtifact.abi,
     functionName: 'setSourceBridge',
     args: [31337n, sourceBridgeAddress]
   });
-  await destClient.waitForTransactionReceipt({ hash: configTx });
+  await destClient.waitForTransactionReceipt({ hash: authTxHash });
   console.log('  SourceBridge authorized for chain 31337!');
 
-  const deploymentData = {
+  const deployment = {
     sourceChainId: 31337,
     destinationChainId: 31338,
     sourceBridge: sourceBridgeAddress,
     headerOracle: oracleAddress,
     receiptVerifier: receiptVerifierAddress,
     destinationVerifier: destVerifierAddress,
-    appReceiver: appReceiverAddress,
+    destinationReceiver: receiverAddress,
+    appReceiver: receiverAddress,
     deployedAt: new Date().toISOString()
   };
 
   fs.writeFileSync(
     path.resolve(process.cwd(), 'deployed-addresses.json'),
-    JSON.stringify(deploymentData, null, 2)
+    JSON.stringify(deployment, null, 2),
+    'utf8'
   );
   console.log('\nSaved deployment data to deployed-addresses.json');
 
-  return deploymentData;
-}
-
-if (process.argv[1] && process.argv[1].includes('deploy-local')) {
-  deployContracts().catch((err) => {
-    console.error('Deployment failed:', err);
-    process.exit(1);
-  });
+  return deployment;
 }

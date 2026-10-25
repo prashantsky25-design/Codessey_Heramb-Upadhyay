@@ -38,7 +38,7 @@ export const SecurityPage: React.FC = () => {
             <span>Cryptographically Verified On-Chain Guarantees</span>
           </h2>
           <span className="tag tag-success">
-            Zero Relayer Trust
+            Trust-Minimized Relayers
           </span>
         </div>
 
