@@ -10,6 +10,8 @@
   ],
   "scripts": {
     "build": "npm run build --workspace=@crossproof/shared && npm run build --workspace=@crossproof/proof && npm run build --workspace=@crossproof/api && npm run build --workspace=@crossproof/web",
+    "build:api": "npm run build --workspace=@crossproof/shared && npm run build --workspace=@crossproof/proof && npm run build --workspace=@crossproof/api",
+    "build:web": "npm run build --workspace=@crossproof/shared && npm run build --workspace=@crossproof/web",
     "test:contracts": "cd contracts && forge test -vv",
     "test:packages": "npm test --workspace=@crossproof/proof && npm test --workspace=@crossproof/api",
     "test": "npm run test:contracts && npm run test:packages",
@@ -19,7 +21,7 @@
     "serve": "npx tsx scripts/serve.js",
     "demo": "node scripts/demo.js"
   },
-  "devDependencies": {
+  "dependencies": {
     "typescript": "^5.5.4"
   }
 }
