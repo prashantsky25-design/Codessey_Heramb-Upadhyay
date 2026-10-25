@@ -105,9 +105,28 @@ contract LightClientHeaderVerifierTest is Test {
         verifier.verifySourceHeader(SOURCE_CHAIN, blockNumber, blockHash, receiptsRoot, proof);
     }
 
+    function test_RevertIf_BlockOlderThanCheckpoint() public {
+        // Advance checkpoint slot to 200
+        verifier.updateCheckpoint(bytes32(uint256(1)), 200, trustedSigner);
+        bytes memory proof = abi.encode(headerRlp, validSignature);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                LightClientHeaderVerifier.BlockOlderThanFinalizedCheckpoint.selector,
+                blockNumber,
+                200
+            )
+        );
+        verifier.verifySourceHeader(SOURCE_CHAIN, blockNumber, blockHash, receiptsRoot, proof);
+    }
+
     function test_TrustModelDescription() public view {
         string memory tm = verifier.getTrustModel();
         assertTrue(bytes(tm).length > 0);
+        assertEq(
+            tm,
+            "MODE_B_ATTESTATION_VERIFIER: Execution header RLP verified with receiptsRoot extraction; consensus is authenticated via designated committee signer checkpoint. Full PoS sync committee verification is not yet integrated."
+        );
     }
 
     function _buildHeaderRlp(uint256 num, bytes32 root) internal pure returns (bytes memory) {

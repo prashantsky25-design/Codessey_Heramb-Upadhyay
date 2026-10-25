@@ -112,15 +112,60 @@ export async function fetchVerificationRecord(verificationId: string): Promise<{
   return res.json();
 }
 
+export type AttackEndpoint =
+  | 'tamper-proof'
+  | 'replay'
+  | 'wrong-source-chain'
+  | 'wrong-chain'
+  | 'wrong-destination'
+  | 'substitute-payload'
+  | 'invalid-event'
+  | 'missing-finality'
+  | 'malformed-proof'
+  | 'unauthorized-caller'
+  | 'rpc-failure';
+
 export async function runAttack(
-  type: 'tamper-proof' | 'replay' | 'substitute-payload' | 'wrong-chain' | 'missing-finality',
-  destinationChainId: number,
-  proof: CrossChainProofData
+  type: AttackEndpoint,
+  destinationChainId: number = 31338,
+  proof?: CrossChainProofData
 ) {
-  const res = await fetch(`${API_BASE}/attack/${type}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ destinationChainId, proof })
-  });
-  return res.json();
+  try {
+    const res = await fetch(`${API_BASE}/attack/${type}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destinationChainId, proof })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok && !data.outcome) {
+      return {
+        outcome: 'ERROR',
+        status: 'error',
+        attackId: type,
+        attackTitle: type,
+        category: 'Network / Transport Failure',
+        targetContract: 'API Gateway',
+        revertReason: data.message || `HTTP ${res.status}: ${res.statusText}`,
+        details: 'Transport failure communicating with verification endpoint.',
+        securityProperty: 'Fail-closed client architecture',
+        auditorExplanation: 'The call failed at the transport layer and was not submitted to contracts.',
+        onChainRejection: false
+      };
+    }
+    return data;
+  } catch (err: any) {
+    return {
+      outcome: 'ERROR',
+      status: 'error',
+      attackId: type,
+      attackTitle: type,
+      category: 'Transport Failure',
+      targetContract: 'Local Network',
+      revertReason: err?.message || 'Network request failed',
+      details: 'Unreachable network endpoint or client connection abort.',
+      securityProperty: 'Fail-closed error handling',
+      auditorExplanation: 'Network transport failure reported accurately without false positive claims.',
+      onChainRejection: false
+    };
+  }
 }

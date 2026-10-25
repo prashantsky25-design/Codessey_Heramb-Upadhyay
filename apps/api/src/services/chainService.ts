@@ -8,6 +8,8 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import { config } from '../config';
 import { ChainConfig } from '@crossproof/shared';
+import fs from 'fs';
+import path from 'path';
 
 export class ChainService {
   private publicClients: Map<number, PublicClient> = new Map();
@@ -79,6 +81,31 @@ export class ChainService {
     if (!c) {
       throw new Error(`Chain ${chainId} not found in configuration`);
     }
+
+    // Dynamic resolution from deployed-addresses.json if available
+    try {
+      const possibleDeploymentPaths = [
+        path.resolve(process.cwd(), 'deployed-addresses.json'),
+        path.resolve(process.cwd(), '../deployed-addresses.json'),
+        path.resolve(process.cwd(), '../../deployed-addresses.json')
+      ];
+      for (const p of possibleDeploymentPaths) {
+        if (fs.existsSync(p)) {
+          const dep = JSON.parse(fs.readFileSync(p, 'utf8'));
+          if (chainId === 31337 && dep.sourceBridge) {
+            c.sourceBridgeAddress = dep.sourceBridge;
+          } else if (chainId === 31338) {
+            if (dep.destinationVerifier) c.destinationVerifierAddress = dep.destinationVerifier;
+            if (dep.headerOracle) c.headerOracleAddress = dep.headerOracle;
+            if (dep.destinationReceiver || dep.appReceiver) c.receiverAddress = dep.destinationReceiver || dep.appReceiver;
+          }
+          break;
+        }
+      }
+    } catch {
+      // fallback to static config
+    }
+
     return c;
   }
 

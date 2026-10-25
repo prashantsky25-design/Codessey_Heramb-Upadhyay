@@ -81,7 +81,7 @@ export const ArchitecturePage: React.FC = () => {
               <li>Pre-flight verification against root</li>
             </ul>
             <div className="rounded border border-[var(--warning)] bg-[var(--warning-soft)] p-2 text-[10px] warning-text">
-              Zero trust in relayer: smart contract independently validates all proofs
+              Untrusted relayer model: Destination smart contracts independently validate MPT inclusion proofs
             </div>
           </div>
 

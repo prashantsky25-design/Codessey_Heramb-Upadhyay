@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import http from 'http';
 import path from 'path';
+import { resolveAnvil } from './resolveBinaries.js';
 
 function checkRpc(port) {
   return new Promise((resolve) => {
@@ -52,12 +53,12 @@ async function main() {
   const sourceRunning = await checkRpc(8545);
   const destRunning = await checkRpc(8546);
 
-  const anvilBin = path.resolve(process.cwd(), 'bin/anvil.exe');
+  const anvilBin = resolveAnvil();
   let sourceProcess = null;
   let destProcess = null;
 
   if (!sourceRunning) {
-    console.log('Spawning Source Chain (Anvil port 8545, chainId 31337)...');
+    console.log(`Spawning Source Chain (${anvilBin} --port 8545 --chain-id 31337)...`);
     sourceProcess = spawn(anvilBin, ['--port', '8545', '--chain-id', '31337'], {
       stdio: 'pipe'
     });
@@ -72,7 +73,7 @@ async function main() {
   }
 
   if (!destRunning) {
-    console.log('Spawning Destination Chain (Anvil port 8546, chainId 31338)...');
+    console.log(`Spawning Destination Chain (${anvilBin} --port 8546 --chain-id 31338)...`);
     destProcess = spawn(anvilBin, ['--port', '8546', '--chain-id', '31338'], {
       stdio: 'pipe'
     });

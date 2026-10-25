@@ -113,17 +113,23 @@ export async function buildReceiptInclusionProof(
     );
   }
 
-  const receiptsRoot = reconstructedRoot;
+  const receiptsRoot = reconstructedRoot as Hex;
 
   // 5. Generate cryptographic inclusion proof for the target receipt
   const targetKey = encodeTxIndexToRlp(receipt.transactionIndex);
   const rawProof = await trie.createProof(targetKey);
   const targetReceiptRlp = encodeReceiptToRlp(receipt);
 
-  // 6. Verify proof locally to guarantee correctness
-  const verifiedVal = await Trie.verifyProof(targetKey, rawProof);
-  if (!verifiedVal || bytesToHex(verifiedVal) !== bytesToHex(targetReceiptRlp)) {
-    throw new Error('Local proof verification failed: generated proof does not match receipt');
+  // 6. Verify proof locally against receiptsRoot to guarantee correctness
+  const proofTrie = await Trie.createFromProof(rawProof);
+  if (bytesToHex(proofTrie.root()).toLowerCase() !== receiptsRoot.toLowerCase()) {
+    throw new Error(
+      `Receipt proof root mismatch: expected ${receiptsRoot}, got ${bytesToHex(proofTrie.root())}`
+    );
+  }
+  const verifiedVal = await proofTrie.get(targetKey, true);
+  if (!verifiedVal || bytesToHex(verifiedVal).toLowerCase() !== bytesToHex(targetReceiptRlp).toLowerCase()) {
+    throw new Error('Local proof verification failed: generated proof does not match receipt bytes');
   }
 
   // 7. Parse MessageDispatched event from receipt logs
@@ -192,8 +198,8 @@ export async function buildReceiptInclusionProof(
     );
   }
 
-  const mptProofHex = rawProof.map((node) => bytesToHex(node));
-  const receiptRlpHex = bytesToHex(targetReceiptRlp);
+  const mptProofHex = rawProof.map((node) => bytesToHex(node) as Hex);
+  const receiptRlpHex = bytesToHex(targetReceiptRlp) as Hex;
   const totalSizeBytes = mptProofHex.reduce((acc, n) => acc + (n.length - 2) / 2, 0);
 
   const proofData: CrossChainProofData = {

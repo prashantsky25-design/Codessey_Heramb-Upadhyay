@@ -5,13 +5,14 @@
   "type": "module",
   "description": "CrossProof: Decentralized Cross-Chain Transaction Verification Protocol",
   "workspaces": [
-    "apps/*",
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run build --workspace=@crossproof/shared && npm run build --workspace=@crossproof/proof && npm run build --workspace=@crossproof/api && npm run build --workspace=@crossproof/web",
     "test:contracts": "cd contracts && forge test -vv",
-    "test": "npm run test:contracts",
+    "test:packages": "npm test --workspace=@crossproof/proof && npm test --workspace=@crossproof/api",
+    "test": "npm run test:contracts && npm run test:packages",
     "lint": "npm run lint --workspaces --if-present",
     "api:dev": "npm run dev --workspace=apps/api",
     "web:dev": "npm run dev --workspace=apps/web",

@@ -4,7 +4,7 @@
 
 [![Solidity](https://img.shields.io/badge/Solidity-0.8.20-blue.svg)](https://soliditylang.org/)
 [![Foundry](https://img.shields.io/badge/Foundry-1.8.6-orange.svg)](https://getfoundry.sh/)
-[![Tests](https://img.shields.io/badge/Tests-39%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Tests-42%20Contracts%20%7C%2013%20TS-brightgreen.svg)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 CrossProof is a modular cross-chain transaction verification protocol that enables smart contracts on a destination blockchain to verify cryptographic evidence about a transaction originating on another blockchain.
@@ -23,10 +23,11 @@ Independent blockchains maintain separate states, execution environments, consen
 ## Key Architecture & Features
 
 - **Authentic Merkle Patricia Trie (MPT) Inclusion Verification:** Directly in Solidity, `MPTProof.sol` traverses trie branches and verifies that a transaction receipt belongs to the source block's `receiptsRoot`.
+- **Decoupled Consensus Header Verification:** Explicit distinction between development oracle commitments (Mode A) and transition consensus attestation verification (Mode B).
 - **Domain-Separated Message Identification:** Binds source chain ID, source contract, destination chain ID, destination receiver, monotonic nonce, and payload hash to prevent collision and cross-chain replay.
 - **On-Chain Replay Protection:** Enforced via persistent `mapping(bytes32 => bool) public processedMessages` following Checks-Effects-Interactions (CEI).
-- **Modular Verifier Architecture:** Clean separation of concerns between Header Verification (`IHeaderVerifier`), Receipt Inclusion (`IReceiptVerifier`), and Application Execution (`IDestinationReceiver`).
-- **Interactive Proof Attack Lab:** Live adversarial testing suite demonstrating that mutated proof nodes, replayed messages, and substituted payloads are strictly blocked on-chain.
+- **Interactive Proof Attack Lab:** Live adversarial testing suite covering 10 distinct exploit vectors with strict failure semantics (`BLOCKED`, `VULNERABILITY_DETECTED`, `ERROR`, `INCONCLUSIVE`).
+- **Zero Fake Verifications:** Real Patricia Trie root comparisons, memory-safe RLP encoding/decoding, and fail-closed error handling.
 
 ```mermaid
 flowchart LR
@@ -34,6 +35,7 @@ flowchart LR
     Trie -->|Extracts Proof| Relayer["Prover Pipeline\n(packages/proof)"]
     Relayer -->|Submits Proof| Verifier["Destination Chain (31338)\nDestinationVerifier.sol"]
     Verifier -->|Verifies Inclusion| MPT["ReceiptVerifier.sol\n(MPTProof & RLPReader)"]
+    Verifier -->|Verifies Header| Header["IHeaderVerifier\n(Mode A / Mode B)"]
     Verifier -->|Checks Replay| Storage["processedMessages[id]"]
     Verifier -->|Executes Action| Receiver["Destination Dapp\n(CrossProofReceiver.sol)"]
 ```
@@ -55,15 +57,16 @@ crossproof/
 │   │   ├── verifiers/   # ReceiptVerifier.sol, DevHeaderOracle.sol, LightClientHeaderVerifier.sol
 │   │   ├── DestinationVerifier.sol
 │   │   └── SourceBridge.sol
-│   ├── test/            # 39 Comprehensive Foundry tests (unit, fuzz, attack simulations)
+│   ├── test/            # 42 Comprehensive Foundry tests (unit, fuzz, attack simulations)
 │   └── script/          # DeployCrossProof.s.sol
 ├── packages/
-│   ├── proof/           # TypeScript MPT Patricia Trie builder & RLP encoder
+│   ├── proof/           # TypeScript MPT Patricia Trie builder & RLP encoder (9 unit tests)
 │   └── shared/          # Shared TypeScript types, ABIs, chain configs
 ├── scripts/
-│   ├── demo.js          # Automated end-to-end multi-chain demo runner
+│   ├── demo.js          # Portable multi-chain demo runner (dynamic binary resolution)
 │   ├── deploy-local.ts  # Contract deployer for dual EVM chains
-│   └── e2e-demo.ts      # Comprehensive verification and attack test script
+│   ├── e2e-demo.ts      # Comprehensive verification and attack test script
+│   └── resolveBinaries.js # Cross-platform Foundry resolution (PATH with workspace fallback)
 ├── docs/
 │   ├── ARCHITECTURE.md  # Detailed technical design & sequence diagrams
 │   ├── SECURITY.md      # Threat model, attacker capabilities & trust boundaries
@@ -78,32 +81,35 @@ crossproof/
 
 ## Quickstart & Commands
 
-### 1. Run the Automated End-to-End Demo
-Executes the full pipeline: spawns dual local chains, deploys contracts, generates a real transaction, constructs the Patricia Trie proof, verifies it on the destination verifier, and demonstrates rejection of 3 adversarial attacks:
+### 1. Run the Full Stack Application
+Starts dual local Anvil blockchains (Chain 31337 on port 8545, Chain 31338 on port 8546), deploys all protocol contracts, starts Fastify API (port 3001), and launches Vite frontend (port 5173):
+
+```bash
+npm run serve
+```
+
+### 2. Run Automated End-to-End Cryptographic Demo
+Generates a real cross-chain dispatch transaction, reconstructs the Patricia Trie proof, verifies it on the destination verifier, and demonstrates rejection of adversarial attacks:
 
 ```bash
 npm run demo
 ```
 
-### 2. Run Smart Contract Test Suite
-Executes all 39 Foundry security tests:
+### 3. Run Smart Contract Test Suite
+Executes all 42 Foundry security tests across 5 test suites:
 
 ```bash
 cd contracts
 forge test -vv
 ```
 
-### 3. Start Backend & Frontend Applications
+### 4. Run TypeScript Test Suites
+Executes unit tests for proof builder and API routes:
 
 ```bash
-# Terminal 1: Start Backend API (Port 3001)
-npm run api:dev
-
-# Terminal 2: Start Web Frontend (Port 5173)
-npm run web:dev
+npm test --workspace=@crossproof/proof
+npm test --workspace=@crossproof/api
 ```
-
-Open `http://localhost:5173` in your browser.
 
 ---
 
@@ -112,17 +118,22 @@ Open `http://localhost:5173` in your browser.
 | Mode | Target | Trust Assumption | Verification Mechanics |
 | :--- | :--- | :--- | :--- |
 | **MODE A (Local Demo)** | Local Dev / Demo | Authorized relayer commits header to `DevHeaderOracle`. | Receipt inclusion under `receiptsRoot` is strictly verified cryptographically. Labeled clearly as development-only. |
-| **MODE B (Consensus)** | Production | Consensus committee signatures or light client checkpoint. | Implemented in `LightClientHeaderVerifier.sol`: parses header RLP, verifies `blockHash == keccak256(headerRlp)`, extracts `receiptsRoot`, verifies committee signatures. |
+| **MODE B (Transition Attestation)** | Testnet Prototype | Designated committee threshold checkpoint in `LightClientHeaderVerifier`. | Parses execution block header RLP, verifies `blockHash == keccak256(headerRlp)`, extracts `receiptsRoot`, checks checkpoint boundary, and authenticates signatures. |
 
 ---
 
-## Security Invariants Enforced
+## 10 Adversarial Exploit Vectors (Attack Lab)
 
-1. **Replay Invariant:** A message ID can never be processed twice (`processedMessages[messageId]` persists on-chain).
-2. **Inclusion Invariant:** A modified proof node or tampered receipt never succeeds (`keccak256` hash collision resistance).
-3. **Domain Invariant:** A proof generated for destination chain $X$ is rejected on chain $Y$.
-4. **Binding Invariant:** Substituted payload bytes cause immediate `PayloadHashMismatch` revert.
-5. **Least Privilege:** Verification execution is permissionless; administrative functions are strictly restricted.
+1. **Tampered MPT Node:** Corrupts Patricia Trie node bytes; blocked by `InvalidReceiptProof()`.
+2. **Message Replay:** Resubmits finalized messageId; blocked by `MessageAlreadyProcessed()`.
+3. **Unconfigured Source Chain:** Replays proof from unknown chain ID; blocked by `SourceChainNotConfigured()`.
+4. **Mismatched Destination Chain:** Submits proof intended for another network; blocked by `InvalidDestinationChainId()`.
+5. **Payload Substitution:** Replaces calldata payload; blocked by `PayloadHashMismatch()`.
+6. **Spoofed Bridge Emitter:** Emits event from unauthorized contract; blocked by `InvalidSourceContract()`.
+7. **Unfinalized Header:** References uncommitted block hash; blocked by `SourceHeaderVerificationFailed()`.
+8. **Malformed Non-RLP Bytes:** Tests parser memory safety; blocked fail-closed by RLPReader.
+9. **Unauthorized Admin Call:** Attempts to hijack verifier; blocked by `Unauthorized()` / `ZeroAddress()`.
+10. **RPC Provider Failure:** Evaluates network timeout; strictly reports `outcome: ERROR` rather than false success.
 
 ---
 
