@@ -34,6 +34,8 @@ interface VerifyPageProps {
   initialTxHash?: string;
   initialChainId?: number;
   onVerificationCompleted?: () => void;
+  /** Called with the completed proof so App can forward it to AttackLabPage */
+  onProofReady?: (proof: CrossChainProofData) => void;
 }
 
 const DEFAULT_STAGES: TimelineStage[] = [
@@ -62,7 +64,8 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
   chains,
   initialTxHash = '',
   initialChainId = 31337,
-  onVerificationCompleted
+  onVerificationCompleted,
+  onProofReady
 }) => {
   const [sourceChainId, setSourceChainId] = useState<number>(initialChainId);
   const [destinationChainId, setDestinationChainId] = useState<number>(31338);
@@ -178,12 +181,30 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
       );
 
       // STAGE 4: Source Header / Finality
-      updateStage('header_finality_validated', 'in_progress', 'Validating source header in IHeaderVerifier...');
+      // P1 fix: check verifyCheck.checks?.headerCommitted instead of unconditionally marking completed.
+      // The prepare step commits the header to DevHeaderOracle on-chain; verifyProofLocally reads it back.
+      // If the oracle commit failed (headerValidated=false in the API response), this will be false.
+      updateStage('header_finality_validated', 'in_progress', 'Confirming source header commitment in DevHeaderOracle...');
+
+      if (!verifyCheck.checks?.headerCommitted) {
+        updateStage(
+          'header_finality_validated',
+          'failed',
+          undefined,
+          'Source header was NOT committed to the DevHeaderOracle. ' +
+          'Ensure the destination chain RPC (http://127.0.0.1:8546) is running and the relayer has funds. ' +
+          'On-chain submission will be rejected by DestinationVerifier.verifyAndExecute().'
+        );
+        throw new Error(
+          'Stage 4 failed: Source header not committed to HeaderOracle. ' +
+          'Cannot proceed to on-chain verification.'
+        );
+      }
 
       updateStage(
         'header_finality_validated',
         'completed',
-        'Source header authenticated and finalized in DevHeaderOracle'
+        'Source header authenticated and committed to DevHeaderOracle'
       );
 
       // STAGE 5: Destination Verifier Invoked
@@ -218,6 +239,11 @@ export const VerifyPage: React.FC<VerifyPageProps> = ({
       setDestinationTxHash(submitResult.destinationTxHash);
       setGasUsed(submitResult.gasUsed);
       setFinalStatus('VERIFIED');
+
+      // Expose the completed proof for AttackLabPage
+      if (onProofReady) {
+        onProofReady(prepareResult.proof);
+      }
 
       if (onVerificationCompleted) {
         onVerificationCompleted();

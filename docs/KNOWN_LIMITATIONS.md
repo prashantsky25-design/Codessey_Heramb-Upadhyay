@@ -9,7 +9,7 @@
 - [x] **Ethereum Receipt RLP Parser (`RLPReader.sol`):** Memory-safe RLP decoding of legacy and EIP-2718 typed transaction receipts, status checks, and log extraction.
 - [x] **Destination Verifier (`DestinationVerifier.sol`):** Origin configuration checks, destination chain ID validation, payload hash binding, and persistent replay protection (`processedMessages[messageId]`).
 - [x] **Adversarial Security Suite (39 Foundry Tests):** Tested against tampered proof nodes, corrupted receipts, wrong tx indices, replay attacks, payload substitutions, unconfigured chains, and unauthorized administrative actions.
-- [x] **Proof Builder Engine (`packages/proof`):** Automatic Patricia Trie reconstruction from block receipts using `@ethereumjs/trie` and Viem.
+- [x] **Proof Builder Engine (`packages/proof`):** Automatic Patricia Trie reconstruction from block receipts using `@ethereumjs/trie` and Viem with strict canonical root verification against `block.receiptsRoot`.
 - [x] **Validated Backend API (`apps/api`):** Fastify server with Zod schema validation, structured error codes, and health endpoints.
 - [x] **Professional Web UI (`apps/web`):** Charcoal/cyan design, deterministic 6-stage verification timeline, Proof Inspector, and interactive Proof Attack Lab.
 
@@ -20,7 +20,7 @@
 ### A. Consensus Light Client Scope (Mode A vs Mode B)
 - **Current Status:** For the local dual-chain demo, `DevHeaderOracle.sol` (Mode A) is used. It relies on an authorized relayer to commit `(blockNumber, blockHash, receiptsRoot)`.
 - **Limitation:** In Mode A, if the relayer is dishonest, it could commit an invalid header. However, transaction receipt inclusion within the committed header remains strictly verified cryptographically.
-- **Mode B Implementation:** `LightClientHeaderVerifier.sol` is implemented and tested to parse RLP block headers, verify `blockHash == keccak256(headerRlp)`, extract `receiptsRoot`, and verify consensus committee threshold signatures.
+- **Mode B Implementation:** `LightClientHeaderVerifier.sol` is implemented and tested to parse RLP block headers, verify `blockHash == keccak256(headerRlp)`, and extract `receiptsRoot`. For the prototype demonstration, it uses an ECDSA trusted signer scheme to represent consensus authority signatures rather than a full 512-validator BLS sync committee (see below).
 
 ### B. Ethereum PoS Beacon Chain Sync Committee Gas Costs
 - **Limitation:** Full verification of 512 BLS12-381 validator signatures on EVM without EIP-2537 precompiles incurs prohibitive gas costs.
@@ -29,6 +29,12 @@
 ### C. Layer 2 Rollup State Root Finality
 - **Limitation:** When verifying transactions from Optimism, Base, or Arbitrum on Ethereum L1, the source L2 state root must first be finalized by the L2 output oracle / dispute game (e.g. 7-day challenge window or ZK validity proof).
 - **Scope:** CrossProof currently targets L1-to-L1 or L1-to-L2 execution.
+
+### D. Destination Receiver Failure Semantics & Reentrancy Isolation
+- **Mechanism:** In `DestinationVerifier.sol`, the replay flag `processedMessages[messageId] = true` is committed BEFORE invoking external receiver contracts (CEI pattern), and calls to `IDestinationReceiver` are wrapped in a `try/catch` block.
+- **Design Tradeoff:** If an application receiver reverts or exhausts its gas, the verification transaction succeeds, the message is permanently marked as processed, and `verificationRecords[messageId].executed` is set to `false`.
+- **Security Rationale:** This prevents malicious or buggy receivers from causing relayer griefing, unhandled reverts, or reentrancy attacks against the verification core.
+- **Limitation:** In this MVP, failed receiver callbacks are terminal (no automatic retry queue). Production implementations should provide a permissioned `retryExecution(bytes32 messageId, bytes calldata payload)` function.
 
 ---
 

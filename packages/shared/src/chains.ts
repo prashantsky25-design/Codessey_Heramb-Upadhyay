@@ -1,12 +1,32 @@
 import { ChainConfig } from './types';
 
+/**
+ * Default chain configurations.
+ *
+ * LOCAL DEVNET ADDRESSES — sourced from deployed-addresses.json produced by the
+ * Foundry deployment script.  The API layer (apps/api/src/config.ts) re-reads
+ * deployed-addresses.json at start-up and overrides these defaults, so these
+ * values act as a compile-time fallback only.
+ *
+ * Canonical values from deployed-addresses.json (last deployment):
+ *   sourceChainId       : 31337
+ *   destinationChainId  : 31338
+ *   sourceBridge        : 0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9
+ *   headerOracle        : 0xa51c1fc2f0d1a1b8494ed1fe312d7c3a78ed91c0
+ *   receiptVerifier     : 0x0dcd1bf9a1b36ce34237eeafef220932846bcd82
+ *   destinationVerifier : 0x9a676e781a523b5d0c0e43731313a708cb607508
+ *   appReceiver         : 0x0b306bf915c4d645ff596e518faf3f9669b97016
+ *
+ * If you redeploy, update both this file AND deployed-addresses.json.
+ */
 export const SUPPORTED_CHAINS: Record<number, ChainConfig> = {
   31337: {
     id: 31337,
     name: 'Ethereum Local (Source)',
     shortName: 'ETH-Local',
     rpcUrl: 'http://127.0.0.1:8545',
-    sourceBridgeAddress: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512',
+    // P0 fix: aligned with deployed-addresses.json → sourceBridge
+    sourceBridgeAddress: '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9',
     isSource: true,
     isDestination: false,
     nativeCurrency: {
@@ -20,9 +40,10 @@ export const SUPPORTED_CHAINS: Record<number, ChainConfig> = {
     name: 'Optimism Local (Destination)',
     shortName: 'OP-Local',
     rpcUrl: 'http://127.0.0.1:8546',
-    destinationVerifierAddress: '0xa513e6e4b8f2a923d98304ec87f64353c4d5c853',
-    headerOracleAddress: '0x5fc8d32690cc91d4c39d9d3abcbd16989f875707',
-    receiverAddress: '0x2279b7a0a67db372996a5fab50d91eaa73d2ebe6',
+    // P0 fix: aligned with deployed-addresses.json
+    destinationVerifierAddress: '0x9a676e781a523b5d0c0e43731313a708cb607508',
+    headerOracleAddress: '0xa51c1fc2f0d1a1b8494ed1fe312d7c3a78ed91c0',
+    receiverAddress: '0x0b306bf915c4d645ff596e518faf3f9669b97016',
     isSource: false,
     isDestination: true,
     nativeCurrency: {

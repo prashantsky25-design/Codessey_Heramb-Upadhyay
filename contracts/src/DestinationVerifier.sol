@@ -94,6 +94,20 @@ contract DestinationVerifier is IDestinationVerifier {
 
     /**
      * @notice Verifies cryptographic source-chain evidence and marks message as verified
+     * @dev Follows the Checks-Effects-Interactions (CEI) security pattern.
+     *      RECEIVER FAILURE SEMANTICS:
+     *      1. Replay flag `processedMessages[messageId] = true` is committed BEFORE invoking the receiver.
+     *      2. Application callbacks to `IDestinationReceiver` are wrapped in a try/catch block.
+     *      3. If the destination receiver reverts or runs out of gas, the core verification transaction
+     *         DOES NOT revert. Instead:
+     *           - The message remains permanently recorded as verified (`processedMessages[messageId] = true`).
+     *           - `verificationRecords[messageId].executed` is marked `false`.
+     *           - `MessageExecuted(messageId, destinationReceiver, false)` is emitted.
+     *      4. SECURITY RATIONALE: This guarantees that a misbehaving, gas-guzzling, or malicious
+     *         application receiver cannot revert the verification proof transaction, preventing
+     *         relayer griefing and reentrancy exploits.
+     *      5. In this MVP, failed receiver callbacks are terminal (no automatic retry queue). Production
+     *         extensions can introduce a dedicated permissioned `retryExecution()` function.
      */
     function verifyAndExecute(
         CrossChainProof calldata proof,
@@ -155,7 +169,7 @@ contract DestinationVerifier is IDestinationVerifier {
             revert PayloadHashMismatch(verifiedEv.payloadHash, keccak256(proof.payload));
         }
 
-        // 8. State update (CEI pattern)
+        // 8. State update (CEI pattern - Replay Protection Committed First)
         processedMessages[messageId] = true;
 
         verificationRecords[messageId] = VerificationRecord({
@@ -181,7 +195,7 @@ contract DestinationVerifier is IDestinationVerifier {
             proof.txIndex
         );
 
-        // 9. Execute application receiver if destination is a contract
+        // 9. Execute application receiver with reentrancy & griefing containment
         bool executionSuccess = false;
         if (verifiedEv.destinationReceiver.code.length > 0) {
             try

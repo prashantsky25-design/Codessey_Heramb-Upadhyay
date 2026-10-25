@@ -14,10 +14,12 @@ import {
   Radio,
   Zap,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Layers,
+  Database
 } from 'lucide-react';
 import { runAttack } from '../api';
-import { CrossChainProofData } from '@crossproof/shared';
+import { CrossChainProofData, ChainConfig, SUPPORTED_CHAINS } from '@crossproof/shared';
 
 type AttackType = 'tamper' | 'replay' | 'payload' | 'wrong-chain' | 'missing-finality';
 
@@ -113,15 +115,30 @@ const ATTACK_SCENARIOS: AttackMeta[] = [
   }
 ];
 
-export const AttackLabPage: React.FC = () => {
+interface AttackLabPageProps {
+  lastVerifiedProof?: CrossChainProofData | null;
+  chains?: ChainConfig[];
+  onNavigateToVerify?: () => void;
+}
+
+export const AttackLabPage: React.FC<AttackLabPageProps> = ({
+  lastVerifiedProof,
+  chains = Object.values(SUPPORTED_CHAINS),
+  onNavigateToVerify
+}) => {
   const [activeAttack, setActiveAttack] = useState<AttackType>('tamper');
   const [executing, setExecuting] = useState(false);
   const [attackResult, setAttackResult] = useState<any>(null);
 
-  // Sample proof data
-  const sampleProof: CrossChainProofData = {
+  const canonicalSourceBridge =
+    chains.find((c) => c.isSource)?.sourceBridgeAddress ||
+    SUPPORTED_CHAINS[31337]?.sourceBridgeAddress ||
+    '0xcf7ed3acca5a467e9e704c703e8d87f634fb0fc9';
+
+  // Fallback sample proof data aligned with deployed-addresses.json
+  const defaultSampleProof: CrossChainProofData = {
     sourceChainId: 31337,
-    sourceContract: '0xe7f1725e7734ce288f8367e1bb143e90bb3f0512',
+    sourceContract: canonicalSourceBridge as `0x${string}`,
     blockNumber: 3,
     blockHash: '0x8bb760d32fddc2c347ecfc679a7372101cf4a64fe852c48f290490cb0af63c0f',
     receiptsRoot: '0x2e6d8f0d7cc9a28de6c38b557b9f7a56b7ea8373bac309de9084fb732a850c9f',
@@ -133,6 +150,10 @@ export const AttackLabPage: React.FC = () => {
     ],
     payload: '0x43726f737350726f6f663a2044656d6f2053656564205472616e73616374696f6e'
   };
+
+  // P1 fix: Prioritize genuine proof captured from recent verification
+  const activeProof: CrossChainProofData = lastVerifiedProof || defaultSampleProof;
+  const isUsingRealProof = !!lastVerifiedProof;
 
   const currentScenario =
     ATTACK_SCENARIOS.find((a) => a.id === activeAttack) || ATTACK_SCENARIOS[0];
@@ -150,7 +171,7 @@ export const AttackLabPage: React.FC = () => {
     };
 
     try {
-      const res = await runAttack(endpointMap[type], 31338, sampleProof);
+      const res = await runAttack(endpointMap[type], 31338, activeProof);
       setAttackResult(res);
     } catch (err: any) {
       setAttackResult({
@@ -183,6 +204,41 @@ export const AttackLabPage: React.FC = () => {
           Verify that forged proofs, mutated receipts, substituted payloads, unfinalized headers, and replay attempts
           are strictly rejected on-chain without backend dependencies.
         </p>
+      </div>
+
+      {/* Proof Source Indicator Banner */}
+      <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded border ${
+        isUsingRealProof
+          ? 'border-[var(--accent)] bg-[var(--surface-muted)]'
+          : 'border-[var(--line)] bg-[var(--surface-card)]'
+      }`}>
+        <div className="flex items-center space-x-3">
+          <Database className={`h-5 w-5 ${isUsingRealProof ? 'accent-text' : 'text-muted'}`} />
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-semibold text-primary">
+                {isUsingRealProof ? 'Authentic Mined Proof Active' : 'Default Seed Proof Template'}
+              </span>
+              <span className={`tag ${isUsingRealProof ? 'tag-accent' : 'tag-neutral'}`}>
+                {isUsingRealProof ? `Block #${activeProof.blockNumber} (tx #${activeProof.txIndex})` : 'Static Seed'}
+              </span>
+            </div>
+            <p className="text-[11px] text-secondary mt-0.5">
+              {isUsingRealProof
+                ? `ReceiptsRoot: ${activeProof.receiptsRoot?.slice(0, 18)}... | ${activeProof.mptProof?.length || 0} trie nodes`
+                : 'Using synthetic proof payload. Verify a live transaction in the "Verify Transaction" tab to load genuine mined proof data for replay testing.'}
+            </p>
+          </div>
+        </div>
+
+        {!isUsingRealProof && onNavigateToVerify && (
+          <button
+            onClick={onNavigateToVerify}
+            className="button-ghost text-xs whitespace-nowrap"
+          >
+            <span>Verify Live Tx &rarr;</span>
+          </button>
+        )}
       </div>
 
       {/* 5 Attack Selection Cards */}

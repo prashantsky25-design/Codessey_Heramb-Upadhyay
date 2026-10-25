@@ -43,6 +43,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
     );
   });
 
+  const sourceChain = chains.find((c) => c.isSource) || chains.find((c) => c.id === 31337);
+  const destChain = chains.find((c) => c.isDestination) || chains.find((c) => c.id === 31338);
+
   return (
     <div className="space-y-6">
       {/* 1. ASYMMETRIC SPLIT HERO SECTION */}
@@ -198,28 +201,28 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
             {/* Origin Chain */}
              <div className="surface-inset p-3">
               <div className="flex items-center justify-between mb-1">
-                 <span className="font-semibold text-primary">Origin Chain: Ethereum Local</span>
+                 <span className="font-semibold text-primary">Origin Chain: {sourceChain?.name || 'Ethereum Local (Source)'}</span>
                  <span className="tag tag-accent">
-                  ID: 31337
+                  ID: {sourceChain?.id || 31337}
                 </span>
               </div>
-               <div className="technical-data mt-2 text-[11px] text-secondary">RPC: http://127.0.0.1:8545</div>
+               <div className="technical-data mt-2 text-[11px] text-secondary">RPC: {sourceChain?.rpcUrl || 'http://127.0.0.1:8545'}</div>
                <div className="technical-data mt-1 truncate text-[10px] text-muted">
-                Bridge: 0xe7f1725e7734ce288f8367e1bb143e90bb3f0512
+                Bridge: {sourceChain?.sourceBridgeAddress || 'Not configured'}
               </div>
             </div>
 
             {/* Destination Chain */}
              <div className="surface-inset p-3">
               <div className="flex items-center justify-between mb-1">
-                 <span className="font-semibold text-primary">Destination: Optimism Local</span>
+                 <span className="font-semibold text-primary">Destination: {destChain?.name || 'Optimism Local (Destination)'}</span>
                  <span className="tag tag-success">
-                  ID: 31338
+                  ID: {destChain?.id || 31338}
                 </span>
               </div>
-               <div className="technical-data mt-2 text-[11px] text-secondary">RPC: http://127.0.0.1:8546</div>
+               <div className="technical-data mt-2 text-[11px] text-secondary">RPC: {destChain?.rpcUrl || 'http://127.0.0.1:8546'}</div>
                <div className="technical-data mt-1 truncate text-[10px] text-muted">
-                Verifier: 0xa513e6e4b8f2a923d98304ec87f64353c4d5c853
+                Verifier: {destChain?.destinationVerifierAddress || 'Not configured'}
               </div>
             </div>
 
