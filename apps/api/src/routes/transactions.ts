@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { chainService } from '../services/chainService';
+import { chainService } from '../services/chainService.js';
 import { decodeEventLog, Hash, keccak256 } from 'viem';
 import { SourceBridgeAbi } from '@crossproof/shared';
 

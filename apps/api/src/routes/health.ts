@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify';
-import { chainService } from '../services/chainService';
-import { config } from '../config';
+import { chainService } from '../services/chainService.js';
+import { config } from '../config.js';
 
 export const healthRoutes: FastifyPluginAsync = async (server) => {
   server.get('/health', async () => {

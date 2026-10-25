@@ -1,4 +1,4 @@
-import { ChainConfig } from './types';
+import { ChainConfig } from './types.js';
 
 /**
  * Default chain configurations.

@@ -1,10 +1,10 @@
 import fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
-import { healthRoutes } from './routes/health';
-import { chainRoutes } from './routes/chains';
-import { transactionRoutes } from './routes/transactions';
-import { verificationRoutes } from './routes/verification';
-import { attackRoutes } from './routes/attack';
+import { healthRoutes } from './routes/health.js';
+import { chainRoutes } from './routes/chains.js';
+import { transactionRoutes } from './routes/transactions.js';
+import { verificationRoutes } from './routes/verification.js';
+import { attackRoutes } from './routes/attack.js';
 
 export function buildServer(): FastifyInstance {
   const server = fastify({

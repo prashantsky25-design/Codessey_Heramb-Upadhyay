@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { buildServer } from '../server';
+import { buildServer } from '../server.js';
 
 test('verification routes - validation and error handling', async () => {
   const server = buildServer();

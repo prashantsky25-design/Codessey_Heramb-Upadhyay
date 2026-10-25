@@ -9,8 +9,8 @@ import {
   buildReceiptInclusionProof,
   verifyReceiptInclusionProofLocally
 } from '@crossproof/proof';
-import { chainService } from '../services/chainService';
-import { verificationStore } from '../services/verificationStore';
+import { chainService } from '../services/chainService.js';
+import { verificationStore } from '../services/verificationStore.js';
 import {
   DestinationVerifierAbi,
   DevHeaderOracleAbi

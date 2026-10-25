@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { buildReceiptInclusionProof, verifyReceiptInclusionProofLocally } from './proofBuilder';
+import { buildReceiptInclusionProof, verifyReceiptInclusionProofLocally } from './proofBuilder.js';
 import { PublicClient, TransactionReceipt, Hash, Hex } from 'viem';
-import { encodeTxIndexToRlp, encodeReceiptToRlp } from './rlpEncoder';
+import { encodeTxIndexToRlp, encodeReceiptToRlp } from './rlpEncoder.js';
 import { Trie } from '@ethereumjs/trie';
 import { bytesToHex } from '@ethereumjs/util';
 

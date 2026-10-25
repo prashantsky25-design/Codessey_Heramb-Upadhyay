@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert';
 import { SUPPORTED_CHAINS } from '@crossproof/shared';
-import { ChainService } from './services/chainService';
+import { ChainService } from './services/chainService.js';
 
 test('SUPPORTED_CHAINS has consistent local configuration', () => {
   assert.strictEqual(SUPPORTED_CHAINS[31337].id, 31337);

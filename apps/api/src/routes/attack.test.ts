@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { buildServer } from '../server';
+import { buildServer } from '../server.js';
 
 test('attack routes - executes attack endpoints with strict outcome semantics', async () => {
   const server = buildServer();

@@ -6,7 +6,7 @@ import {
   WalletClient
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { config } from '../config';
+import { config } from '../config.js';
 import { ChainConfig } from '@crossproof/shared';
 import fs from 'fs';
 import path from 'path';

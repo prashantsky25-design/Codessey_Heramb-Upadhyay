@@ -12,7 +12,7 @@ import {
 } from 'viem';
 import { CrossChainProofData } from '@crossproof/shared';
 import { SourceBridgeAbi } from '@crossproof/shared';
-import { encodeReceiptToRlp, encodeTxIndexToRlp } from './rlpEncoder';
+import { encodeReceiptToRlp, encodeTxIndexToRlp } from './rlpEncoder.js';
 
 export interface ProofGenerationResult {
   proof: CrossChainProofData;

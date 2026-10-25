@@ -1,7 +1,7 @@
 import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { chainService } from '../services/chainService';
-import { verificationStore } from '../services/verificationStore';
+import { chainService } from '../services/chainService.js';
+import { verificationStore } from '../services/verificationStore.js';
 import { DestinationVerifierAbi } from '@crossproof/shared';
 import { Hex, createPublicClient, http } from 'viem';
 

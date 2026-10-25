@@ -1,2 +1,2 @@
-export * from './rlpEncoder';
-export * from './proofBuilder';
+export * from './rlpEncoder.js';
+export * from './proofBuilder.js';
